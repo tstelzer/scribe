@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "lib": ["es2018", "esnext", "dom"],
+        "module": "commonjs",
+        "target": "es2017",
+        "outDir": "./build",
+        "pretty": true,
+        "declaration": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "typeRoots": ["./typings", "./node_modules/@types"],
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "build"]
+}

@@ -1,0 +1,20 @@
+{
+    "extends": ["tslint:latest", "tslint-plugin-prettier",
+    "tslint-config-prettier"],
+    "rules": {
+        "no-unnecessary-type-assertion": true,
+        "eofline": true,
+        "arrow-return-shorthand": true,
+        "newline-before-return": true,
+        "object-literal-sort-keys": false,
+        "no-trailing-whitespace": true,
+        "interface-over-type-literal": false,
+        "no-console": false,
+        "no-submodule-imports": false,
+        "one-variable-per-declaration": false,
+        "no-duplicate-imports": false,
+        "no-shadowed-variable": false,
+        "variable-name": false,
+        "prettier": true
+    }
+}
