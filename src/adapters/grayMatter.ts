@@ -2,7 +2,7 @@ import * as matter from 'gray-matter';
 import {basename} from 'path';
 import * as R from 'ramda';
 
-import {File, Frontmatter} from '../types';
+import * as T from '../types';
 
 const titleToSlug = R.pipe(
   R.replace(/[^\s\w]/g, ''),
@@ -11,7 +11,7 @@ const titleToSlug = R.pipe(
   R.toLower,
 );
 
-const filepathToSlug = (filepath: string) =>
+const filepathToSlug = (filepath: T.Path) =>
   basename(filepath).replace(/\..+/, '');
 
 const contentToExcerpt = R.pipe(
@@ -24,7 +24,7 @@ const splitTags = R.pipe(
   R.split(','),
 );
 
-export const fileToFrontmatter = ({content, filepath}: File): Frontmatter =>
+export const fileToFrontmatter = ({content, filepath}: T.File): T.Frontmatter =>
   R.pipe(
     (s: string) => matter(s, {excerpt: true, excerpt_separator: '\n\n'}),
     (a: any) => ({...a, meta: a.data}),

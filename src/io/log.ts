@@ -1,15 +1,15 @@
 import colorize from 'chalk';
 
-import {File, Logger} from '../types';
+import * as T from '../types';
 
-const logger = (f: Logger) => (...a: any) => {
+const logger = (f: T.Logger) => (...a: any) => {
   f('[' + colorize.blue('Scribey') + ']', ...a);
 };
 
 const toConsole = logger(console.log);
 
 export const stdout = {
-  wroteFile: ({filepath, content}: File) =>
+  wroteFile: ({filepath, content}: T.File) =>
     toConsole('Wrote file:', colorize.magenta(filepath)),
   error: (e: Error) => toConsole(colorize.red('Error:'), e),
 };

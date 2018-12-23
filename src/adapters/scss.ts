@@ -4,7 +4,7 @@ import sass = require('node-sass');
 import * as postcss from 'postcss';
 import R = require('ramda');
 
-import {File} from '../types';
+import * as T from '../types';
 
 export const compileCss = ({
   content,
@@ -12,9 +12,9 @@ export const compileCss = ({
   filepath,
 }: {
   content: string;
-  includePaths: string[];
-  filepath: string;
-}): Promise<File> =>
+  includePaths: T.Path[];
+  filepath: T.Path;
+}): Promise<T.File> =>
   R.pipe(
     sass.renderSync,
     ({stats: {includedFiles}, css}) => ({

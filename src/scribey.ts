@@ -1,3 +1,13 @@
+/*
+ * --- TODO --------------------------------------------------------------------
+ * config check
+ * Create dirs if not exist
+ * Handle validation errors.
+ * Handle scss errors.
+ * Update styles, holy shit what a mess.
+ * Fix post:published format, use YYYY/MM/DD.
+ */
+
 import browserSync = require('browser-sync');
 import colorize from 'chalk';
 import path = require('path');
@@ -14,16 +24,7 @@ import {reducePostContext, validatePost} from './core/post';
 import * as f from './io/file';
 import {stdout} from './io/log';
 
-import {
-  Config,
-  File,
-  FrontmatterAdapter,
-  HtmlAdapter,
-  PageAdapter,
-  PageContext,
-  Post,
-  PostContext,
-} from './types';
+import * as T from './types';
 
 /**
  * Transforms a file to a domain post.
@@ -31,23 +32,30 @@ import {
 const fileToPost = ({
   fileToHtml,
   fileToFrontmatter,
+  destinationDirectory,
 }: {
-  fileToHtml: HtmlAdapter;
-  fileToFrontmatter: FrontmatterAdapter;
-}) => (file: File): Post => {
+  fileToHtml: T.FileToHtml;
+  fileToFrontmatter: T.FileToFrontmatter;
+  destinationDirectory: T.Path;
+}) => (file: T.File): T.Post => {
   const content = fileToHtml(file);
   const frontmatter = fileToFrontmatter(file);
+  const destinationPath = path.join(
+    destinationDirectory,
+    frontmatter.slug,
+    '.html',
+  );
 
-  return {frontmatter, content, sourcePath: file.filepath};
+  return {frontmatter, content, sourcePath: file.filepath, destinationPath};
 };
 
 /**
  * Compiles a list of pages from page and post contexts.
  */
-const compilePages = (compilePage: PageAdapter) => ([
+const compilePages = (compilePage: T.PageToFile) => ([
   pageContext,
   postContext,
-]: [PageContext, PostContext]) => {
+]: [T.PageContext, T.PostContext]) => {
   const result = [];
   for (const page of Object.values(pageContext)) {
     result.push(compilePage(page)(postContext));
@@ -56,18 +64,7 @@ const compilePages = (compilePage: PageAdapter) => ([
   return result;
 };
 
-/*
- * TODO:
- * remove "destination" BS from page/post/styles
- * config check
- * Create dirs if not exist
- * Handle validation errors.
- * Handle scss errors.
- * Update styles, holy shit what a mess.
- * Fix post:published format, use YYYY/MM/DD.
- */
-
-export const scribey = (config: Config) => {
+export const scribey = (config: T.Config) => {
   // === HOT RELOADING =========================================================
 
   const bs = browserSync.create();
@@ -101,19 +98,24 @@ export const scribey = (config: Config) => {
 
   // --- posts -----------------------------------------------------------------
 
+  const postDestination = path.join(config.destination, 'posts');
+
   // Stream of domain posts.
   const posts$ = postSource$.pipe(
-    O.map(fileToPost({fileToFrontmatter, fileToHtml})),
+    O.map(
+      fileToPost({
+        fileToFrontmatter,
+        fileToHtml,
+        destinationDirectory: postDestination,
+      }),
+    ),
     O.map(validatePost),
   );
 
   const layoutPath = path.join(config.source.layouts, 'post.pug');
-  const postDestination = path.join(config.destination, 'posts');
 
   // Stream of compiled post files.
-  const compiledPosts$ = posts$.pipe(
-    O.map(compilePost(postDestination, layoutPath)),
-  );
+  const compiledPosts$ = posts$.pipe(O.map(compilePost(layoutPath)));
 
   // --- pages -----------------------------------------------------------------
 

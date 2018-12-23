@@ -1,16 +1,20 @@
+// --- type aliases ------------------------------------------------------------
+
 export type Markdown = string;
 export type Html = string;
+export type Path = string;
 export type File = {filepath: string; content: string};
 
-export type FrontmatterAdapter = (file: File) => Frontmatter;
-export type HtmlAdapter = (file: File) => Html;
-export type PageAdapter = (page: Page) => (postContext: PostContext) => File;
+// --- function interfaces -----------------------------------------------------
 
+export type FileToFrontmatter = (file: File) => Frontmatter;
+export type FileToHtml = (file: File) => Html;
+export type PageToFile = (page: Page) => (postContext: PostContext) => File;
 export type Logger = (...a: any) => void;
 
-/**
- * Post metadata.
- */
+// --- domain entities --------------------------------------------------------
+
+/** Post metadata. */
 export type Frontmatter = {
   category: string;
   excerpt: string;
@@ -21,27 +25,29 @@ export type Frontmatter = {
   title: string;
 };
 
-/**
- * Post.
- */
+/** Individual article. */
 export type Post = {
   frontmatter: Frontmatter;
-  content: string;
-  sourcePath: string;
+  content: Html;
+  sourcePath: Path;
+  destinationPath: Path;
 };
 
+/** Accumulated posts. */
 export type PostContext = {
   posts: {
     [title: string]: Post;
   };
 };
 
+/** Standalone content page. */
 export type Page = {
-  templatePath: string;
-  filepath: string;
+  templatePath: Path;
+  destinationPath: Path;
   title: string;
 };
 
+/** Accumulated pages. */
 export type PageContext = {
   [title: string]: Page;
 };

@@ -4,18 +4,18 @@ import * as withAnchors from 'markdown-it-anchor';
 import * as withAttributes from 'markdown-it-attrs';
 import * as withTableOfContents from 'markdown-it-table-of-contents';
 
-import {File} from '../types';
+import * as T from '../types';
 
 /**
  * Highlight function for markdown-it.
  */
-const highlight = (content: string, language: string) =>
+const highlight = (content: T.Html, language: string) =>
   '<code class="hljs">' + hljs.highlight(language, content).value + '</code>';
 
 /**
  * Takes a string of markdown and transforms it to html.
  */
-export const fileToHtml = ({content, filepath}: File) =>
+export const fileToHtml = ({content, filepath}: T.File): T.Html =>
   new Markdown('default', {
     html: false,
     xhtmlOut: false,

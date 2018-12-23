@@ -1,5 +1,5 @@
 import * as R from 'ramda';
-import {Post, PostContext} from '../types';
+import * as T from '../types';
 
 const excludes = R.complement(R.contains);
 
@@ -8,7 +8,7 @@ const isValidDate = (date: any) =>
   Object.prototype.toString.call(date) === '[object Date]' &&
   !isNaN(date);
 
-export const validatePost = (post: Post): Post => {
+export const validatePost = (post: T.Post): T.Post => {
   const {frontmatter, content, sourcePath} = post;
   const {title, subtitle, published, category} = frontmatter;
 
@@ -37,7 +37,7 @@ export const validatePost = (post: Post): Post => {
   return post;
 };
 
-export const reducePostContext = (context: PostContext, post: Post) => {
+export const reducePostContext = (context: T.PostContext, post: T.Post) => {
   context.posts[post.frontmatter.title] = post;
 
   return context;

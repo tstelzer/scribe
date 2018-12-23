@@ -1,22 +1,20 @@
 import * as path from 'path';
 
-import {Page, PageContext} from '../types';
+import * as T from '../types';
 
-const toTitle = (templatePath: string) =>
+const toTitle = (templatePath: T.Path) =>
   path.basename(templatePath).replace(/\..+/, '');
 
-const toFilepath = (destination: string, title: string) =>
-  path.join(destination, title + '.html');
+export const toPage = (destinationDirectory: T.Path) => (
+  templatePath: T.Path,
+): T.Page => {
+  const title = toTitle(templatePath);
+  const destinationPath = path.join(destinationDirectory, title, '.html');
 
-export const toPage = (destination: string) => (
-  templatePath: string,
-): Page => ({
-  title: toTitle(templatePath),
-  filepath: toFilepath(destination, toTitle(templatePath)),
-  templatePath,
-});
+  return {title, destinationPath, templatePath};
+};
 
-export const reducePages = (pages: PageContext, page: Page) => {
+export const reducePages = (pages: T.PageContext, page: T.Page) => {
   pages[page.title] = page;
 
   return pages;

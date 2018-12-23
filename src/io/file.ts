@@ -5,15 +5,17 @@ import * as R from 'ramda';
 import {bindNodeCallback, fromEvent, merge, Observable, Observer} from 'rxjs';
 import * as O from 'rxjs/operators';
 
-import {File} from '../types';
+import * as T from '../types';
 
 /**
  * DON'T USE. Problem: Files are written _once_, then never again.
  * Takes a stream of files, creates `WriteStream`s for each and returns the
  * original input, notifying subscribers of successful writes.
  */
-export const writeFiles = (observable$: Observable<File>): Observable<File> =>
-  Observable.create((observer: Observer<any>) => {
+export const writeFiles = (
+  observable$: Observable<T.File>,
+): Observable<T.File> =>
+  Observable.create((observer: Observer<T.File>) => {
     const cache = new Map();
 
     observable$.forEach(({filepath, content}) => {
@@ -32,10 +34,14 @@ export const writeFiles = (observable$: Observable<File>): Observable<File> =>
     return observer;
   });
 
+/**
+ * Thin wrapper around `fs.writeFile`. This is a bandaid solution until I can
+ * fix `writeFiles`.
+ */
 export const writeFile = ({next, error}: {next: any; error: any}) => ({
   content,
   filepath,
-}: File) =>
+}: T.File) =>
   bindNodeCallback(fs.writeFile)(filepath, content + EOL).subscribe({
     next: next({content, filepath}),
     error: e => error('Something bad happened', e),
@@ -45,13 +51,13 @@ export const writeFile = ({next, error}: {next: any; error: any}) => ({
  * Wrapper around `fs.readFile`.
  * Takes a file path, reads the file and returns a stream of the contents.
  */
-export const readFile = (filePath: string) =>
+export const readFile = (filePath: T.Path) =>
   bindNodeCallback(fs.readFile)(filePath).pipe(
     O.map(R.toString),
     O.map(content => ({content, filepath: filePath})),
   );
 
-const __watchDirPaths = (directoryPath: string): Observable<any> => {
+const __watchDirPaths = (directoryPath: T.Path): Observable<any> => {
   const watcher = watch(directoryPath, {ignoreInitial: false});
   const newFiles = fromEvent(watcher, 'add');
   const changedFiles = fromEvent(watcher, 'change');
@@ -63,12 +69,12 @@ const __watchDirPaths = (directoryPath: string): Observable<any> => {
  * Watches for changes in `directoryPath` and returns a stream of file paths
  * for those files that changed.
  */
-export const watchDirPaths = (directoryPath: string) =>
+export const watchDirPaths = (directoryPath: T.Path) =>
   __watchDirPaths(directoryPath).pipe(O.map(R.head));
 
 /**
  * Watches for changes in `directoryPath` and returns a stream of file contents
  * for those files that changed.
  */
-export const watchDirContents = (directoryPath: string): Observable<File> =>
+export const watchDirContents = (directoryPath: T.Path): Observable<T.File> =>
   watchDirPaths(directoryPath).pipe(O.flatMap(readFile));
