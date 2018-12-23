@@ -1,7 +1,8 @@
 import browserSync = require('browser-sync');
+import colorize from 'chalk';
 import path = require('path');
 import R = require('ramda');
-import {combineLatest} from 'rxjs';
+import {combineLatest, merge} from 'rxjs';
 import O = require('rxjs/operators');
 
 import {fileToFrontmatter} from './adapters/grayMatter';
@@ -11,6 +12,7 @@ import {compileCss} from './adapters/scss';
 import {reducePages, toPage} from './core/page';
 import {reducePostContext, validatePost} from './core/post';
 import * as f from './io/file';
+import {stdout} from './io/log';
 
 import {
   Config,
@@ -152,10 +154,7 @@ export const scribey = (config: Config) => {
 
   // === SINKS =================================================================
 
-  const log = ({filepath, content}: File) => console.log('Wrote', filepath);
-  const err = console.log;
-
-  compiledPosts$.subscribe(f.writeFile({next: log, error: err}));
-  compiledPages$.subscribe(f.writeFile({next: log, error: err}));
-  compiledStyles$.subscribe(f.writeFile({next: log, error: err}));
+  merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
+    f.writeFile({next: stdout.wroteFile, error: stdout.error}),
+  );
 };

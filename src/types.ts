@@ -6,6 +6,8 @@ export type FrontmatterAdapter = (file: File) => Frontmatter;
 export type HtmlAdapter = (file: File) => Html;
 export type PageAdapter = (page: Page) => (postContext: PostContext) => File;
 
+export type Logger = (...a: any) => void;
+
 /**
  * Post metadata.
  */
