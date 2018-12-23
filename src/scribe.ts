@@ -64,7 +64,7 @@ const compilePages = (compilePage: T.PageToFile) => ([
   return result;
 };
 
-export const scribey = (config: T.Config) => {
+export const scribe = (config: T.Config) => {
   // === HOT RELOADING =========================================================
 
   const bs = browserSync.create();

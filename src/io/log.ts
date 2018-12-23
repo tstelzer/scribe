@@ -3,7 +3,7 @@ import colorize from 'chalk';
 import * as T from '../types';
 
 const logger = (f: T.Logger) => (...a: any) => {
-  f('[' + colorize.blue('Scribey') + ']', ...a);
+  f('[' + colorize.blue('Scribe') + ']', ...a);
 };
 
 const toConsole = logger(console.log);
