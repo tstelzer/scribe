@@ -1,13 +1,3 @@
-/*
- * --- TODO --------------------------------------------------------------------
- * config check
- * Create dirs if not exist
- * Handle validation errors.
- * Handle scss errors.
- * Update styles, holy shit what a mess.
- * Fix post:published format, use YYYY/MM/DD.
- */
-
 import browserSync = require('browser-sync');
 import colorize from 'chalk';
 import path = require('path');
