@@ -56,6 +56,7 @@ const compilePages = (compilePage: PageAdapter) => ([
 
 /*
  * TODO:
+ * remove "destination" BS from page/post/styles
  * config check
  * Create dirs if not exist
  * Handle validation errors.

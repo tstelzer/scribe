@@ -1,6 +1,5 @@
-import {FSWatcher, watch} from 'chokidar';
+import {watch} from 'chokidar';
 import * as fs from 'fs';
-import * as hash from 'md5';
 import {EOL} from 'os';
 import * as R from 'ramda';
 import {bindNodeCallback, fromEvent, merge, Observable, Observer} from 'rxjs';

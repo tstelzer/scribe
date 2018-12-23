@@ -1,8 +1,4 @@
 import * as path from 'path';
-import * as pug from 'pug';
-import * as R from 'ramda';
-import {combineLatest, of} from 'rxjs';
-import * as O from 'rxjs/operators';
 
 import {Page, PageContext} from '../types';
 
