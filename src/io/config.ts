@@ -3,7 +3,7 @@ import * as R from 'ramda';
 
 // FIXME: Stop being lazy and write the config checks ...
 const root = path.join(process.env.HOME || '~', 'dev', 'timmstelzer');
-const posts = path.join(process.env.HOME || '~', 'posts');
+const posts = path.join(process.env.HOME || '~', 'doc', 'articles');
 
 const defaultConfig = {
   source: {

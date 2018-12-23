@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/autoprefixer": "^9.1.1",
     "@types/browser-sync": "^0.0.42",
+    "@types/chalk": "^2.2.0",
     "@types/chokidar": "^1.7.5",
     "@types/cssnano": "^4.0.0",
     "@types/highlight.js": "^9.12.3",
@@ -34,9 +35,10 @@
   "dependencies": {
     "autoprefixer": "9.4.3",
     "browser-sync": "2.26.3",
+    "chalk": "^2.4.1",
     "chokidar": "2.0.4",
     "cssnano": "4.1.8",
-    "gray-matter": "latest",
+    "gray-matter": "git+https://git@github.com/tstelzer/gray-matter.git",
     "highlight.js": "9.13.1",
     "markdown-it": "8.4.2",
     "markdown-it-anchor": "5.0.2",
