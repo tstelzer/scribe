@@ -14,16 +14,7 @@ export type Logger = (...a: any) => void;
 
 // --- error handling ----------------------------------------------------------
 
-export interface Success {
-  kind: 'success';
-  value: any;
-}
-export interface Failure {
-  kind: 'failure';
-  value: Error;
-}
-
-export type Result = Success | Failure;
+export type Errors = string[];
 
 // --- domain entities --------------------------------------------------------
 
