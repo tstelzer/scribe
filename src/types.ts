@@ -12,6 +12,19 @@ export type FileToHtml = (file: File) => Html;
 export type PageToFile = (page: Page) => (postContext: PostContext) => File;
 export type Logger = (...a: any) => void;
 
+// --- error handling ----------------------------------------------------------
+
+export interface Success {
+  kind: 'success';
+  value: any;
+}
+export interface Failure {
+  kind: 'failure';
+  value: Error;
+}
+
+export type Result = Success | Failure;
+
 // --- domain entities --------------------------------------------------------
 
 /** Post metadata. */
