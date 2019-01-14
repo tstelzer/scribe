@@ -1,77 +1,64 @@
-import {traverse} from 'fp-ts/lib/Array';
-import {getArrayMonoid} from 'fp-ts/lib/Monoid';
-import {
-  failure,
-  getApplicative,
-  isSuccess,
-  Validation,
-} from 'fp-ts/lib/Validation';
+import {failure, isSuccess, success, Validation} from 'fp-ts/lib/Validation';
 import {existsSync, lstatSync, PathLike, readFile, readFileSync} from 'fs';
 import * as path from 'path';
 import * as R from 'ramda';
 import * as RA from 'ramda-adjunct';
+
+import {validate} from '../core/validation';
 import * as T from '../types';
-
-// "type classes"
-
-const validation = getApplicative(getArrayMonoid<string>());
-
-// List of pre-defined failure messages
-const e = {
-  'incorrect-config-path': (s: string) =>
-    `The provided path to the configuration file should be a string, but was "${s}" of type ${typeof s}.`,
-  'config-is-not-a-file': (s: string) =>
-    `Configuration needs to be a file, but none of was found at the provided path "${s}".`,
-};
-
-// predicates
+import {readAndParse} from './file';
 
 const isFile = existsSync;
-const isDirectory = (path: string) =>
-  existsSync(path) && lstatSync(path).isDirectory();
+const isFilePath = R.allPass([RA.isString, isFile]);
+const isDirectory = (path: string) => existsSync(path); // && lstatSync(path).isDirectory();
+const isDirectoryPath = R.allPass([RA.isString, isDirectory]);
 
-// validation
-
-const checkString = (p: T.Path) =>
+const checkString: T.Validator<T.Path> = p =>
   R.type(p) !== 'String'
-    ? failure([e['incorrect-config-path'](p)])
-    : validation.of(p);
+    ? failure([
+        `The provided path to the configuration file should be a string, but was "${p}" of type ${typeof p}.`,
+      ])
+    : success(p);
 
-const checkFile = (p: T.Path) =>
-  !isFile(p) ? failure([e['config-is-not-a-file'](p)]) : validation.of(p);
+const checkFile: T.Validator<T.Path> = p =>
+  !isFile(p)
+    ? failure([
+        `Configuration needs to be a file, but none of was found at the provided path "${p}".`,
+      ])
+    : success(p);
 
-const validateConfigPath = (p: any): Validation<T.Errors, T.Path> => {
-  const checks = [checkString, checkFile];
+const validateConfigPath = validate([checkString, checkFile]);
 
-  return traverse(validation)(checks, f => f(p)).map(() => p);
+const checkDirectory = (property: string): T.Validator<T.Config> => (
+  record: any,
+) => {
+  if (!record[property]) {
+    return failure([`Property "${property}" is required in configuration.`]);
+  } else if (!isDirectoryPath(record[property])) {
+    return failure([`Property "${property}" must be a valid directory path.`]);
+  } else {
+    return success(record);
+  }
 };
 
-// FIXME: Stop being lazy and write the config checks ...
-const root = path.join(process.env.HOME || '~', 'dev', 'timmstelzer');
-const posts = path.join(process.env.HOME || '~', 'doc', 'articles');
+// Yeah, this is dumb, this could easily be a generalized schema checker.
+// But for now this is fine because the config is simple. Need to force myself
+// to keep things simple or I won't ever finish this ...
+const validateConfig = validate([
+  checkDirectory('posts'),
+  checkDirectory('pages'),
+  checkDirectory('styles'),
+  checkDirectory('layouts'),
+  checkDirectory('destination'),
+]);
 
-// const hasPaths = R.map([['source'], ['source']]);
-
-const defaultConfig = {
-  source: {
-    posts,
-    pages: path.join(root, 'src', 'pages'),
-    styles: path.join(root, 'src', 'styles'),
-    layouts: path.join(root, 'src', 'layouts'),
-  },
-  destination: path.join(root, 'dist'),
-  exclude: ['node_modules'],
-  include: ['.htaccess'],
-};
-
-const readAndParse = R.pipe(
-  (p: T.Path) => readFileSync(p, {encoding: 'utf8', flag: 'r'}),
-  JSON.parse,
-);
-
-export const fromPath = (p: any) => {
+export const pathToConfig = (p: any): Validation<T.Errors, T.Config> => {
   const result = validateConfigPath(p);
-  return isSuccess(result) ? validation.of(readAndParse(result.value)) : result;
-};
 
-export const toConfig = R.mergeDeepLeft(defaultConfig);
+  if (isSuccess(result)) {
+    const parsed = readAndParse(result.value);
+    return validateConfig(parsed);
+  } else {
+    return failure(result.value);
+  }
+};

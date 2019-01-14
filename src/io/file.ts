@@ -78,3 +78,8 @@ export const watchDirPaths = (directoryPath: T.Path) =>
  */
 export const watchDirContents = (directoryPath: T.Path): Observable<T.File> =>
   watchDirPaths(directoryPath).pipe(O.flatMap(readFile));
+
+export const readAndParse = R.pipe(
+  (p: T.Path) => fs.readFileSync(p, {encoding: 'utf8', flag: 'r'}),
+  JSON.parse,
+);

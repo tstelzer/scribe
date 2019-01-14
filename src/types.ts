@@ -1,3 +1,5 @@
+import {Validation} from 'fp-ts/lib/Validation';
+
 // --- type aliases ------------------------------------------------------------
 
 export type Markdown = string;
@@ -12,9 +14,10 @@ export type FileToHtml = (file: File) => Html;
 export type PageToFile = (page: Page) => (postContext: PostContext) => File;
 export type Logger = (...a: any) => void;
 
-// --- error handling ----------------------------------------------------------
+// --- error handling / validation ---------------------------------------------
 
 export type Errors = string[];
+export type Validator<M> = (v: M) => Validation<Errors, M>;
 
 // --- domain entities --------------------------------------------------------
 

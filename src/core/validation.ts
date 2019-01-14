@@ -1,17 +1,20 @@
+import {traverse} from 'fp-ts/lib/Array';
+import {getArrayMonoid} from 'fp-ts/lib/Monoid';
+import {getApplicative} from 'fp-ts/lib/Validation';
+import * as R from 'ramda';
+
 import * as T from '../types';
 
-const Success = {
-  of: (value: any): T.Success => ({kind: 'success', value}),
-};
+const traverseV = traverse(getApplicative(getArrayMonoid<string>()));
 
-const isSuccess = (result: T.Result) => result.kind === 'success';
-
-const Failure = {
-  of: (value: Error): T.Failure => ({kind: 'failure', value}),
-};
-
-const isFailure = (result: T.Result) => result.kind === 'failure';
-
-const Result = {
-  fold: (result: T.Result) => result.value,
-};
+/**
+ * Validates some `value` by applying a list of `checks`. Returns a
+ * `Validation`, an applicative `Either`, wrapping a list of failure messages or
+ * the `value` of type `M`, depending on the success of checks. Being an
+ * instance of `applicative` means that it is not fail-fast but accumulating
+ * messages.
+ *
+ * validate :: [(a -> Validation<[String], a>)] -> a -> Validation<[String], a>
+ */
+export const validate = <M>(checks: Array<T.Validator<M>>) => (value: any) =>
+  traverseV(checks, f => f(value)).map(R.always(value));

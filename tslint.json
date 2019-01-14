@@ -5,6 +5,7 @@
     "tslint-config-prettier"
   ],
   "rules": {
+    "prettier": [true, ".prettierrc"],
     "no-unnecessary-type-assertion": false,
     "eofline": true,
     "arrow-return-shorthand": true,
@@ -17,7 +18,6 @@
     "no-duplicate-imports": false,
     "no-shadowed-variable": false,
     "variable-name": false,
-    "interface-name": false,
-    "prettier": true
+    "interface-name": false
   }
 }
