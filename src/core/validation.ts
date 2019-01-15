@@ -16,5 +16,5 @@ const traverseV = traverse(getApplicative(getArrayMonoid<string>()));
  *
  * validate :: [(a -> Validation<[String], a>)] -> a -> Validation<[String], a>
  */
-export const validate = <M>(checks: Array<T.Validator<M>>) => (value: any) =>
+export const validate = <M>(checks: Array<T.Validator<M>>) => (value: M) =>
   traverseV(checks, f => f(value)).map(R.always(value));
