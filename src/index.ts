@@ -1,10 +1,12 @@
 import chalk from 'chalk';
 import {Failure, isFailure} from 'fp-ts/lib/Validation';
+import {homedir} from 'os';
+import * as path from 'path';
 import {pathToConfig} from './io/config';
 import * as T from './types';
 // import {scribe} from './scribe';
 
-const result = pathToConfig('config.json');
+const result = pathToConfig('~/dev/project/timmstelzer/config.json');
 
 // FIXME: make error logger module
 

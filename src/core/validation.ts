@@ -5,7 +5,8 @@ import * as R from 'ramda';
 
 import * as T from '../types';
 
-const traverseV = traverse(getApplicative(getArrayMonoid<string>()));
+const validation = getApplicative(getArrayMonoid<string>());
+const traverseV = traverse(validation);
 
 /**
  * Validates some `value` by applying a list of `checks`. Returns a

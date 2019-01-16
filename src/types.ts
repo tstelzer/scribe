@@ -1,10 +1,15 @@
 import {Validation} from 'fp-ts/lib/Validation';
+import * as path from 'path';
 
 // --- type aliases ------------------------------------------------------------
 
 export type Markdown = string;
 export type Html = string;
 export type Path = string;
+export interface ParsedPath extends path.ParsedPath {
+  full: string;
+  isAbsolute: boolean;
+}
 export type File = {filepath: string; content: string};
 
 // --- function interfaces -----------------------------------------------------

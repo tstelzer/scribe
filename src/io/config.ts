@@ -1,5 +1,6 @@
+import {} from 'fp-ts/lib/Apply';
 import {failure, isSuccess, success, Validation} from 'fp-ts/lib/Validation';
-import {existsSync, lstatSync, PathLike, readFile, readFileSync} from 'fs';
+import {existsSync, lstatSync} from 'fs';
 import * as path from 'path';
 import * as R from 'ramda';
 import * as RA from 'ramda-adjunct';
@@ -7,10 +8,12 @@ import * as RA from 'ramda-adjunct';
 import {validate} from '../core/validation';
 import * as T from '../types';
 import {readAndParse} from './file';
+import {parse, resolve} from './path';
 
 const isFile = existsSync;
 const isFilePath = R.allPass([RA.isString, isFile]);
-const isDirectory = (path: string) => existsSync(path); // && lstatSync(path).isDirectory();
+const isDirectory = (path: string) =>
+  existsSync(path) && lstatSync(path).isDirectory();
 const isDirectoryPath = R.allPass([RA.isString, isDirectory]);
 
 const checkString: T.Validator<T.Path> = p =>
@@ -44,21 +47,29 @@ const checkDirectory = (property: string): T.Validator<T.Config> => (
 // Yeah, this is dumb, this could easily be a generalized schema checker.
 // But for now this is fine because the config is simple. Need to force myself
 // to keep things simple or I won't ever finish this ...
-const validateConfig = validate([
-  checkDirectory('posts'),
-  checkDirectory('pages'),
-  checkDirectory('styles'),
-  checkDirectory('layouts'),
-  checkDirectory('destination'),
-]);
+const validateConfig = validate(
+  R.map(checkDirectory, ['styles', 'posts', 'pages', 'layouts', 'destination']),
+);
+
+const resolvePaths = (configPath: T.ParsedPath) =>
+  R.map(
+    R.pipe(
+      parse,
+      resolve(configPath),
+    ),
+  );
 
 export const pathToConfig = (p: any): Validation<T.Errors, T.Config> => {
-  const result = validateConfigPath(p);
+  const configPath = parse(p);
+  const result = validateConfigPath(configPath.full);
 
-  if (isSuccess(result)) {
-    const parsed = readAndParse(result.value);
-    return validateConfig(parsed);
-  } else {
-    return failure(result.value);
-  }
+  return isSuccess(result)
+    ? R.pipe(
+        // FIXME: Assumes that file is a JSON file.
+        readAndParse,
+        // FIXME: Assumes that properties are strings.
+        resolvePaths(configPath),
+        validateConfig,
+      )(result.value)
+    : result;
 };
