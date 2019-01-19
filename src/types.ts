@@ -65,13 +65,11 @@ export type PageContext = {
 };
 
 export type Config = {
-  source: {
-    posts: string;
-    pages: string;
-    styles: string;
-    layouts: string;
-  };
+  posts: string;
+  pages: string;
+  styles: string;
+  layouts: string;
   destination: string;
-  exclude: string[];
-  include: string[];
+  exclude?: string[];
+  include?: string[];
 };

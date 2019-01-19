@@ -51,13 +51,17 @@ const validateConfig = validate(
   R.map(checkDirectory, ['styles', 'posts', 'pages', 'layouts', 'destination']),
 );
 
-const resolvePaths = (configPath: T.ParsedPath) =>
-  R.map(
-    R.pipe(
-      parse,
-      resolve(configPath),
-    ),
+const resolvePaths = (p: T.ParsedPath) => (o: T.Config) => {
+  const result = {};
+  const f = R.pipe(
+    parse,
+    resolve(p),
   );
+  for (const [key, value] of Object.entries(o)) {
+    result[key] = f(value);
+  }
+  return result;
+};
 
 export const pathToConfig = (p: any): Validation<T.Errors, T.Config> => {
   const configPath = parse(p);
