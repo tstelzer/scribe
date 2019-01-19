@@ -1,14 +1,14 @@
 import {} from 'fp-ts/lib/Apply';
-import {failure, isSuccess, success, Validation} from 'fp-ts/lib/Validation';
+import {failure, isSuccess, success} from 'fp-ts/lib/Validation';
 import {existsSync, lstatSync} from 'fs';
 import * as path from 'path';
 import * as R from 'ramda';
 import * as RA from 'ramda-adjunct';
 
-import {validate} from '../core/validation';
 import * as T from '../types';
 import {readAndParse} from './file';
 import {parse, resolve} from './path';
+import {validate, validation} from './validation';
 
 const isFile = existsSync;
 const isFilePath = R.allPass([RA.isString, isFile]);
@@ -29,6 +29,15 @@ const checkFile: T.Validator<T.Path> = p =>
         `Configuration needs to be a file, but none of was found at the provided path "${p}".`,
       ])
     : success(p);
+
+const checkFile2 = (property: string): T.Validator<T.Path> => (record: any) =>
+  !isFile(record[property])
+    ? failure([
+        `Path for property ${property} needs to be a file, but none of was found at the provided path "${
+          record[property]
+        }".`,
+      ])
+    : success(record[property]);
 
 const validateConfigPath = validate([checkString, checkFile]);
 
@@ -51,29 +60,46 @@ const validateConfig = validate(
   R.map(checkDirectory, ['styles', 'posts', 'pages', 'layouts', 'destination']),
 );
 
-const resolvePaths = (p: T.ParsedPath) => (o: T.Config) => {
-  const result = {};
-  const f = R.pipe(
+/**
+ * Takes a base path `from`, then a `configuration` and resolves all paths in
+ * that configration based on the base path.
+ */
+const resolvePaths = (from: T.ParsedPath) => (configuration: T.Config) => {
+  const parseAndResolve = R.pipe(
     parse,
-    resolve(p),
+    resolve(from),
   );
-  for (const [key, value] of Object.entries(o)) {
-    result[key] = f(value);
-  }
-  return result;
+
+  return R.evolve(
+    {
+      styles: parseAndResolve,
+      posts: parseAndResolve,
+      pages: parseAndResolve,
+      layouts: parseAndResolve,
+      destination: parseAndResolve,
+    },
+    configuration,
+  );
 };
 
-export const pathToConfig = (p: any): Validation<T.Errors, T.Config> => {
+/**
+ * Validates a path `p`. When successful, parses configuration, normalizes and
+ * resolves all paths and returns the domain configuration as a Pass. On
+ * failures, returns a Fail.
+ */
+export const pathToConfig = (p: any): T.Validation<string | T.Config> => {
   const configPath = parse(p);
   const result = validateConfigPath(configPath.full);
 
   return isSuccess(result)
     ? R.pipe(
         // FIXME: Assumes that file is a JSON file.
+        // FIXME: Rename.
         readAndParse,
         // FIXME: Assumes that properties are strings.
         resolvePaths(configPath),
         validateConfig,
+        // FIXME: Don't reach into the Validation, lift the functions instead.
       )(result.value)
     : result;
 };

@@ -9,11 +9,10 @@ import {fileToFrontmatter} from './adapters/grayMatter';
 import {fileToHtml} from './adapters/markdown';
 import {compilePage, compilePost} from './adapters/pug';
 import {compileCss} from './adapters/scss';
+
+import * as f from './core/file';
 import {reducePages, toPage} from './core/page';
 import {reducePostContext, validatePost} from './core/post';
-import * as f from './io/file';
-import {stdout} from './io/log';
-
 import * as T from './types';
 
 /**
@@ -71,16 +70,16 @@ export const scribe = (config: T.Config) => {
   // === SOURCES ===============================================================
 
   // Stream of post source files.
-  const postSource$ = f.watchDirContents(config.source.posts);
+  const postSource$ = f.watchDirContents(config.posts);
 
   // Stream of page source files.
-  const pageSource$ = f.watchDirPaths(config.source.pages);
+  const pageSource$ = f.watchDirPaths(config.pages);
 
-  const styleIndex = path.join(config.source.styles, 'index.scss');
+  const styleIndex = path.join(config.styles, 'index.scss');
 
   // Stream of scss source files.
   const stylesSource$ = f
-    .watchDirPaths(config.source.styles)
+    .watchDirPaths(config.styles)
     .pipe(O.debounceTime(100))
     .pipe(O.flatMap(_ => f.readFile(styleIndex)));
 
@@ -102,7 +101,7 @@ export const scribe = (config: T.Config) => {
     O.map(validatePost),
   );
 
-  const layoutPath = path.join(config.source.layouts, 'post.pug');
+  const layoutPath = path.join(config.layouts, 'post.pug');
 
   // Stream of compiled post files.
   const compiledPosts$ = posts$.pipe(O.map(compilePost(layoutPath)));
@@ -137,7 +136,7 @@ export const scribe = (config: T.Config) => {
   const compiledStyles$ = stylesSource$.pipe(
     O.map(({content}) => ({
       content,
-      includePaths: [config.source.styles],
+      includePaths: [config.styles],
       filepath: styleOutputPath,
     })),
     O.flatMap(compileCss),
@@ -146,7 +145,7 @@ export const scribe = (config: T.Config) => {
 
   // === SINKS =================================================================
 
-  merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
-    f.writeFile({next: stdout.wroteFile, error: stdout.error}),
-  );
+  // merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
+  //   f.writeFile({next: stdout.wroteFile, error: stdout.error}),
+  // );
 };

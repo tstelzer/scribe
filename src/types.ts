@@ -1,4 +1,8 @@
-import {Validation} from 'fp-ts/lib/Validation';
+import {
+  Failure,
+  Success,
+  Validation as _Validation,
+} from 'fp-ts/lib/Validation';
 import * as path from 'path';
 
 // --- type aliases ------------------------------------------------------------
@@ -22,7 +26,10 @@ export type Logger = (...a: any) => void;
 // --- error handling / validation ---------------------------------------------
 
 export type Errors = string[];
-export type Validator<M> = (v: M) => Validation<Errors, M>;
+export type Validation<M> = _Validation<Errors, M>;
+export type Fail<M> = Failure<Errors, M>;
+export type Pass<M> = Success<Errors, M>;
+export type Validator<M> = (v: M) => Validation<M>;
 
 // --- domain entities --------------------------------------------------------
 
@@ -70,6 +77,4 @@ export type Config = {
   styles: string;
   layouts: string;
   destination: string;
-  exclude?: string[];
-  include?: string[];
 };
