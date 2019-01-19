@@ -13,6 +13,7 @@ export type Path = string;
 export interface ParsedPath extends path.ParsedPath {
   full: string;
   isAbsolute: boolean;
+  isDirectory: boolean;
 }
 export type File = {filepath: string; content: string};
 
@@ -77,4 +78,6 @@ export type Config = {
   styles: string;
   layouts: string;
   destination: string;
+  styleIndex: string;
+  layoutPath: string;
 };

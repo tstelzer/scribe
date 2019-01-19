@@ -1,7 +1,5 @@
-import {} from 'fp-ts/lib/Apply';
 import {failure, isSuccess, success} from 'fp-ts/lib/Validation';
 import {existsSync, lstatSync} from 'fs';
-import * as path from 'path';
 import * as R from 'ramda';
 import * as RA from 'ramda-adjunct';
 
@@ -10,10 +8,11 @@ import {readAndParse} from './file';
 import {parse, resolve} from './path';
 import {validate, validation} from './validation';
 
-// FIXME: Compose `validateConfig` better.
+// FIXME: Compose `validateConfig`.
 // FIXME: `pathToConfig` assumes that config file is JSON.
 // FIXME: `pathToConfig` should not reach into Validations.
 // FIXME: rename `readAndParse`, not very descriptive.
+// FIXME: `resolvePaths` OMG. Seriously. Plx refactor.
 // FIXME: `resolvePaths` assumes that properties are strings.
 
 /**
@@ -79,22 +78,22 @@ const validateConfig = validate(
  * Takes a base path `from`, then a `configuration` and resolves all paths in
  * that configration based on the base path.
  */
-const resolvePaths = (from: T.ParsedPath) => (configuration: T.Config) => {
-  const parseAndResolve = R.pipe(
-    parse,
-    resolve(from),
-  );
-
-  return R.evolve(
-    {
-      styles: parseAndResolve,
-      posts: parseAndResolve,
-      pages: parseAndResolve,
-      layouts: parseAndResolve,
-      destination: parseAndResolve,
-    },
-    configuration,
-  );
+const resolvePaths = (from: T.ParsedPath) => (c: T.Config) => {
+  return {
+    styles: resolve(from, parse(c.styles)),
+    pages: resolve(from, parse(c.pages)),
+    posts: resolve(from, parse(c.posts)),
+    destination: resolve(from, parse(c.destination)),
+    layouts: resolve(from, parse(c.layouts)),
+    styleIndex: resolve(
+      parse(resolve(from, parse(c.styles))),
+      parse(c.styleIndex),
+    ),
+    layoutPath: resolve(
+      parse(resolve(from, parse(c.layouts))),
+      parse(c.layoutPath),
+    ),
+  };
 };
 
 /**

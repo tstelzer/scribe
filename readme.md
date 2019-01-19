@@ -2,9 +2,6 @@
 
 ## config:
 
-* styles -> styleIndex
-* layouts -> layoutPath
-
 * if dist doesn't exist, create
 * if dist/css doesn't exist, create
 
