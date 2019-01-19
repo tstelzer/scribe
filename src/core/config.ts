@@ -10,6 +10,28 @@ import {readAndParse} from './file';
 import {parse, resolve} from './path';
 import {validate, validation} from './validation';
 
+// FIXME: Compose `validateConfig` better.
+// FIXME: `pathToConfig` assumes that config file is JSON.
+// FIXME: `pathToConfig` should not reach into Validations.
+// FIXME: rename `readAndParse`, not very descriptive.
+// FIXME: `resolvePaths` assumes that properties are strings.
+
+/**
+ * Validation messages.
+ */
+const t = {
+  shouldBeString: (p: any) =>
+    `The provided path to the configuration file should be a string, but was "${p}" of type ${typeof p}.`,
+  configNeedsToBeFile: (p: any) =>
+    `Configuration needs to be a file, but none of was found at the provided path "${p}".`,
+  pathNeedsToBeFile: (property: string, value: any) =>
+    `Path for property ${property} needs to be a file, but none of was found at the provided path "${value}".`,
+  propertyRequired: (property: string) =>
+    `Property "${property}" is required in configuration.`,
+  shouldBeValidDirectory: (path: string) =>
+    `Path "${path}" must be a valid directory.`,
+};
+
 const isFile = existsSync;
 const isFilePath = R.allPass([RA.isString, isFile]);
 const isDirectory = (path: string) =>
@@ -17,47 +39,40 @@ const isDirectory = (path: string) =>
 const isDirectoryPath = R.allPass([RA.isString, isDirectory]);
 
 const checkString: T.Validator<T.Path> = p =>
-  R.type(p) !== 'String'
-    ? failure([
-        `The provided path to the configuration file should be a string, but was "${p}" of type ${typeof p}.`,
-      ])
-    : success(p);
+  R.type(p) !== 'String' ? failure([t.shouldBeString(p)]) : success(p);
 
-const checkFile: T.Validator<T.Path> = p =>
-  !isFile(p)
-    ? failure([
-        `Configuration needs to be a file, but none of was found at the provided path "${p}".`,
-      ])
-    : success(p);
+const checkConfigurationFile: T.Validator<T.Path> = p =>
+  !isFile(p) ? failure([t.configNeedsToBeFile(p)]) : success(p);
 
-const checkFile2 = (property: string): T.Validator<T.Path> => (record: any) =>
-  !isFile(record[property])
-    ? failure([
-        `Path for property ${property} needs to be a file, but none of was found at the provided path "${
-          record[property]
-        }".`,
-      ])
+const checkFile = (property: string): T.Validator<T.Config> => (record: any) =>
+  !record[property]
+    ? failure([t.propertyRequired(property)])
+    : !isFile(record[property])
+    ? failure([t.pathNeedsToBeFile(property, record[property])])
     : success(record[property]);
 
-const validateConfigPath = validate([checkString, checkFile]);
+const validateConfigPath = validate([checkString, checkConfigurationFile]);
 
 const checkDirectory = (property: string): T.Validator<T.Config> => (
   record: any,
-) => {
-  if (!record[property]) {
-    return failure([`Property "${property}" is required in configuration.`]);
-  } else if (!isDirectoryPath(record[property])) {
-    return failure([`Property "${property}" must be a valid directory path.`]);
-  } else {
-    return success(record);
-  }
-};
+) =>
+  !record[property]
+    ? failure([t.propertyRequired(property)])
+    : !isDirectoryPath(record[property])
+    ? failure([t.shouldBeValidDirectory(record[property])])
+    : success(record);
 
-// Yeah, this is dumb, this could easily be a generalized schema checker.
-// But for now this is fine because the config is simple. Need to force myself
-// to keep things simple or I won't ever finish this ...
+/**
+ * Validates all configuration properties.
+ */
 const validateConfig = validate(
-  R.map(checkDirectory, ['styles', 'posts', 'pages', 'layouts', 'destination']),
+  R.map(checkDirectory, [
+    'styles',
+    'posts',
+    'pages',
+    'layouts',
+    'destination',
+  ]).concat(R.map(checkFile, ['styleIndex', 'layoutPath'])),
 );
 
 /**
@@ -93,13 +108,9 @@ export const pathToConfig = (p: any): T.Validation<string | T.Config> => {
 
   return isSuccess(result)
     ? R.pipe(
-        // FIXME: Assumes that file is a JSON file.
-        // FIXME: Rename.
         readAndParse,
-        // FIXME: Assumes that properties are strings.
         resolvePaths(configPath),
         validateConfig,
-        // FIXME: Don't reach into the Validation, lift the functions instead.
       )(result.value)
     : result;
 };
