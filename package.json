@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts -D",
-    "start": "nodemon -q --watch 'src/**/*' --exec 'ts-node' src/index.ts -D"
+    "start": "nodemon -q --watch 'src/**/*' --exec 'ts-node' src/index.ts ~/dev/project/timmstelzer/config.json -D"
   },
   "author": "Timm Stelzer <timmstelzer@gmail.com>",
   "private": true,

@@ -1,12 +1,9 @@
-import {isFailure} from 'fp-ts/lib/Validation';
-
 import {pathToConfig} from './core/config';
 import {logFailures} from './core/log';
 
-const result = pathToConfig('~/dev/project/timmstelzer/config.json');
+const configPath =
+  typeof process.argv[2] === 'string'
+    ? process.argv[2]
+    : 'no config path supplied';
 
-if (isFailure(result)) {
-  logFailures(result);
-} else {
-  console.log(result.value);
-}
+pathToConfig(configPath).fold(logFailures, console.log);
