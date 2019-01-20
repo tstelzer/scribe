@@ -1,4 +1,3 @@
-import {failure, isSuccess, success} from 'fp-ts/lib/Validation';
 import {existsSync, lstatSync} from 'fs';
 import * as R from 'ramda';
 import * as RA from 'ramda-adjunct';
@@ -6,42 +5,44 @@ import * as RA from 'ramda-adjunct';
 import * as T from '../types';
 import {readAndParse} from './file';
 import {parse, resolve} from './path';
-import {validate, validation} from './validation';
+import {fail, isSuccess, message, succeed, validate} from './validation';
 
-/**
- * Validation messages.
- */
-const t = {
-  shouldBeString: (p: any) =>
-    `The provided path to the configuration file should be a string, but was "${p}" of type ${typeof p}.`,
-  configNeedsToBeFile: (p: any) =>
-    `Configuration needs to be a file, but none of was found at the provided path "${p}".`,
-  pathNeedsToBeFile: (property: string, value: any) =>
-    `Path for property ${property} needs to be a file, but none of was found at the provided path "${value}".`,
+const withContext = message('Parsing and generating the configuration.');
+const failureMessages: Record<string, (...values: any[]) => string> = {
+  shouldBeString: (path: any) =>
+    `The provided path "<%s${path}%>" to the configuration file should be a string, but was of type "<%t${typeof path}%>".`,
+  configNeedsToBeFile: (path: string) =>
+    `Configuration under the provided path "<%s${path}" must to be a file, but none of was found.`,
+  pathNeedsToBeFile: (property: string, path: string) =>
+    `The Provided path "<%s${path}%>" for property "<%s${property}%>" must be a file, but none was found.`,
   propertyRequired: (property: string) =>
-    `Property "${property}" is required in configuration.`,
-  shouldBeValidDirectory: (path: string) =>
-    `Path "${path}" must be a valid directory.`,
+    `The property "<%s${property}%>" is required in configuration.`,
+  shouldBeValidDirectory: (property: string, path: string) =>
+    `The Provided path "<%s${path}%>" for property "<%s${property}%>" must be a valid directory, but none was found.`,
 };
 
+const t = R.mapObjIndexed(
+  f => (...args: any[]) => withContext(f(...args)),
+  failureMessages,
+);
+
 const isFile = existsSync;
-const isFilePath = R.allPass([RA.isString, isFile]);
 const isDirectory = (path: string) =>
   existsSync(path) && lstatSync(path).isDirectory();
 const isDirectoryPath = R.allPass([RA.isString, isDirectory]);
 
 const checkString: T.Validator<T.Path> = p =>
-  R.type(p) !== 'String' ? failure([t.shouldBeString(p)]) : success(p);
+  R.type(p) !== 'String' ? fail(t.shouldBeString(p)) : succeed(p);
 
 const checkConfigurationFile: T.Validator<T.Path> = p =>
-  !isFile(p) ? failure([t.configNeedsToBeFile(p)]) : success(p);
+  !isFile(p) ? fail(t.configNeedsToBeFile(p)) : succeed(p);
 
 const checkFile = (property: string): T.Validator<T.Config> => (record: any) =>
   !record[property]
-    ? failure([t.propertyRequired(property)])
+    ? fail(t.propertyRequired(property))
     : !isFile(record[property])
-    ? failure([t.pathNeedsToBeFile(property, record[property])])
-    : success(record[property]);
+    ? fail(t.pathNeedsToBeFile(property, record[property]))
+    : succeed(record[property]);
 
 const validateConfigPath = validate([checkString, checkConfigurationFile]);
 
@@ -49,10 +50,10 @@ const checkDirectory = (property: string): T.Validator<T.Config> => (
   record: any,
 ) =>
   !record[property]
-    ? failure([t.propertyRequired(property)])
+    ? fail(t.propertyRequired(property))
     : !isDirectoryPath(record[property])
-    ? failure([t.shouldBeValidDirectory(record[property])])
-    : success(record);
+    ? fail(t.shouldBeValidDirectory(property, record[property]))
+    : succeed(record);
 
 /**
  * Validates all configuration properties.
@@ -94,7 +95,7 @@ const resolvePaths = (from: T.ParsedPath) => (c: T.Config) => {
  * resolves all paths and returns the domain configuration as a Pass. On
  * failures, returns a Fail.
  */
-export const pathToConfig = (p: any): T.Validation<string | T.Config> => {
+export const pathToConfig = (p: any): T.Validation<T.Config | string> => {
   const configPath = parse(p);
   const result = validateConfigPath(configPath.full);
 

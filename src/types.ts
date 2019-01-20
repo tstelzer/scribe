@@ -1,19 +1,32 @@
 import {
-  Failure,
-  Success,
+  Failure as _Failure,
+  Success as _Success,
   Validation as _Validation,
 } from 'fp-ts/lib/Validation';
 import * as path from 'path';
 
-// --- error handling / validation ---------------------------------------------
+/** A expected failure message. */
+export type Message = {
+  /** What was scribe doing when the failure occured. */
+  context: string;
+  /** A description of the failure. */
+  description: string;
+};
 
-export type Errors = string[];
-export type Validation<M> = _Validation<Errors, M>;
-export type Fail<M> = Failure<Errors, M>;
-export type Pass<M> = Success<Errors, M>;
+/** List of expected failure messages. */
+export type Messages = Message[];
+
+/** Alias for Failure. */
+export type Failure<M> = _Failure<Messages, M>;
+
+/** Alias for Success. */
+export type Success<M> = _Success<Messages, M>;
+
+/** Alias for Validation. */
+export type Validation<M> = _Validation<Messages, M>;
+
+/** A function validating a value. */
 export type Validator<M> = (v: M) => Validation<M>;
-
-// --- domain ------------------------------------------------------------------
 
 export type FileToFrontmatter = (file: File) => Frontmatter;
 export type FileToHtml = (file: File) => Html;

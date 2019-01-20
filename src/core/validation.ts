@@ -1,11 +1,19 @@
 import {traverse} from 'fp-ts/lib/Array';
 import {getArrayMonoid} from 'fp-ts/lib/Monoid';
-import {getApplicative} from 'fp-ts/lib/Validation';
+import {
+  failure as _failure,
+  getApplicative,
+  isSuccess as _isSuccess,
+  success as _success,
+} from 'fp-ts/lib/Validation';
 import * as R from 'ramda';
 
 import * as T from '../types';
 
-export const validation = getApplicative(getArrayMonoid<string>());
+/** Instance of an Applicative Validation. */
+export const validation = getApplicative(getArrayMonoid<T.Message>());
+
+/** Allows traversing over a validation. */
 const traverseV = traverse(validation);
 
 /**
@@ -15,7 +23,22 @@ const traverseV = traverse(validation);
  * instance of `applicative` means that it is not fail-fast but accumulating
  * messages.
  *
- * validate :: [(a -> Validation<[String], a>)] -> a -> Validation<[String], a>
+ * validate :: [(a -> Validation<b, a>)] -> a -> Validation<b, a>
  */
 export const validate = <M>(checks: Array<T.Validator<M>>) => (value: M) =>
   traverseV(checks, f => f(value)).map(R.always(value));
+
+/** Returns a Validation Failure. */
+export const fail = <A>(message: T.Message): T.Validation<A> =>
+  _failure([message]);
+
+/** Returns a Validation Success. */
+export const succeed = _success;
+
+/** Asserts that Validation succeeded. */
+export const isSuccess = _isSuccess;
+
+/** Generate failure message. */
+export const message = (context: string) => (
+  description: string,
+): T.Message => ({description, context});
