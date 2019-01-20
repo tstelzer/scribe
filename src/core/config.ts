@@ -8,13 +8,6 @@ import {readAndParse} from './file';
 import {parse, resolve} from './path';
 import {validate, validation} from './validation';
 
-// FIXME: Compose `validateConfig`.
-// FIXME: `pathToConfig` assumes that config file is JSON.
-// FIXME: `pathToConfig` should not reach into Validations.
-// FIXME: rename `readAndParse`, not very descriptive.
-// FIXME: `resolvePaths` OMG. Seriously. Plx refactor.
-// FIXME: `resolvePaths` assumes that properties are strings.
-
 /**
  * Validation messages.
  */

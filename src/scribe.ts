@@ -1,7 +1,5 @@
 import browserSync = require('browser-sync');
-import colorize from 'chalk';
 import path = require('path');
-import R = require('ramda');
 import {combineLatest, merge} from 'rxjs';
 import O = require('rxjs/operators');
 
@@ -75,13 +73,11 @@ export const scribe = (config: T.Config) => {
   // Stream of page source files.
   const pageSource$ = f.watchDirPaths(config.pages);
 
-  const styleIndex = path.join(config.styles, 'index.scss');
-
   // Stream of scss source files.
   const stylesSource$ = f
     .watchDirPaths(config.styles)
     .pipe(O.debounceTime(100))
-    .pipe(O.flatMap(_ => f.readFile(styleIndex)));
+    .pipe(O.flatMap(_ => f.readFile(config.styleIndex)));
 
   // === MAIN ==================================================================
 
@@ -101,10 +97,8 @@ export const scribe = (config: T.Config) => {
     O.map(validatePost),
   );
 
-  const layoutPath = path.join(config.layouts, 'post.pug');
-
   // Stream of compiled post files.
-  const compiledPosts$ = posts$.pipe(O.map(compilePost(layoutPath)));
+  const compiledPosts$ = posts$.pipe(O.map(compilePost(config.layoutPath)));
 
   // --- pages -----------------------------------------------------------------
 
@@ -116,7 +110,6 @@ export const scribe = (config: T.Config) => {
 
   // Stream of page context.
   const pageContext$ = pageSource$.pipe(
-    // FIXME: to config
     O.filter(s => !s.match(/.+\/_.+/)),
     O.map(toPage(config.destination)),
     O.scan(reducePages, {}),
@@ -145,7 +138,7 @@ export const scribe = (config: T.Config) => {
 
   // === SINKS =================================================================
 
-  // merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
-  //   f.writeFile({next: stdout.wroteFile, error: stdout.error}),
-  // );
+  merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
+    f.writeFile({next: stdout.wroteFile, error: stdout.error}),
+  );
 };

@@ -16,16 +16,12 @@ export const compileCss = ({
   filepath: T.Path;
 }): Promise<T.File> =>
   R.pipe(
-    // FIXME: This is IO and throws, would be nice if we could push it behind
-    // the boundary and keep this pure
     sass.renderSync,
     ({stats: {includedFiles}, css}) => ({
       content: css.toString(),
       include: includedFiles,
     }),
     ({content, include}) =>
-      // FIXME: This is IO and throws, would be nice if we could push it behind
-      // the boundary and keep this pure
       postcss([autoprefixer, cssnano])
         .process(content, {from: undefined})
         .then(({css}) => ({

@@ -26,7 +26,6 @@ export const validatePost = (post: T.Post): T.Post => {
     throw E('Field "published" is missing or incorrect');
   }
 
-  // FIXME: magic / move to config.
   const categories = ['opinion', 'story', 'tutorial', 'concept', 'review'];
   const cs = R.join(', ', categories);
 
