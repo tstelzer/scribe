@@ -29,8 +29,7 @@ const fileToPost = ({
   const frontmatter = fileToFrontmatter(file);
   const destinationPath = path.join(
     destinationDirectory,
-    frontmatter.slug,
-    '.html',
+    frontmatter.slug + '.html',
   );
 
   return {frontmatter, content, sourcePath: file.filepath, destinationPath};
@@ -51,7 +50,7 @@ const compilePages = (compilePage: T.PageToFile) => ([
   return result;
 };
 
-export const scribe = (config: T.Config) => {
+export default (config: T.Config) => {
   // === HOT RELOADING =========================================================
 
   const bs = browserSync.create();
@@ -139,6 +138,6 @@ export const scribe = (config: T.Config) => {
   // === SINKS =================================================================
 
   merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
-    f.writeFile({next: stdout.wroteFile, error: stdout.error}),
+    f.writeFile({next: () => undefined, error: console.error}),
   );
 };

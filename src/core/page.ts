@@ -9,7 +9,7 @@ export const toPage = (destinationDirectory: T.Path) => (
   templatePath: T.Path,
 ): T.Page => {
   const title = toTitle(templatePath);
-  const destinationPath = path.join(destinationDirectory, title, '.html');
+  const destinationPath = path.join(destinationDirectory, title + '.html');
 
   return {title, destinationPath, templatePath};
 };
