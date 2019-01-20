@@ -25,14 +25,19 @@ const fileToPost = ({
   fileToFrontmatter: T.FileToFrontmatter;
   destinationDirectory: T.Path;
 }) => (file: T.File): T.Post => {
-  const content = fileToHtml(file);
   const frontmatter = fileToFrontmatter(file);
+  const postContent = fileToHtml(file);
   const destinationPath = path.join(
     destinationDirectory,
     frontmatter.slug + '.html',
   );
 
-  return {frontmatter, content, sourcePath: file.filepath, destinationPath};
+  return {
+    frontmatter,
+    postContent,
+    sourcePath: file.filepath,
+    destinationPath,
+  };
 };
 
 /**

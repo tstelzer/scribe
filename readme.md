@@ -23,7 +23,7 @@ It will:
 ### post
 
 * validation: is the front matter correct?
-* format front matter
+* split validation and userPost->domainPost
 
 ### fs
 
@@ -47,6 +47,11 @@ It will:
 * `pathToConfig` assumes that config file is JSON.
 * `resolvePaths` assumes that properties are strings.
 
+## scribe
+
+* watcher for pug layouts doesn't work
+* reload doesn't work
+
 ## Low Priority FIXMEs
 
 ### config
@@ -60,3 +65,7 @@ It will:
 ### file
 
 * `writeFiles` is broken; fix it or remove it.
+
+## markdown
+
+* properly remove front matter

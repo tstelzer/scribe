@@ -1,3 +1,4 @@
+import {format as formatDate} from 'date-fns';
 import * as R from 'ramda';
 import * as T from '../types';
 
@@ -9,7 +10,7 @@ const isValidDate = (date: any) =>
   !isNaN(date);
 
 export const validatePost = (post: T.Post): T.Post => {
-  const {frontmatter, content, sourcePath} = post;
+  const {frontmatter, postContent, sourcePath} = post;
   const {title, subtitle, published, category} = frontmatter;
 
   const E = (s: string) => new Error(s + `for post: ${sourcePath}.`);
@@ -33,7 +34,16 @@ export const validatePost = (post: T.Post): T.Post => {
     throw E('Field "category" is required and must be one of ' + cs);
   }
 
-  return post;
+  const parsePublished = (s: string) => formatDate(new Date(s), 'MMMM YYYY');
+
+  return R.evolve(
+    {
+      frontmatter: {
+        published: parsePublished,
+      },
+    },
+    post,
+  );
 };
 
 export const reducePostContext = (context: T.PostContext, post: T.Post) => {

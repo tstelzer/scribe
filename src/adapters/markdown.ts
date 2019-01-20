@@ -29,4 +29,4 @@ export const fileToHtml = ({content, filepath}: T.File): T.Html =>
     .use(withAttributes)
     .use(withTableOfContents)
     .use(withAnchors, {listType: 'ol'})
-    .render(content);
+    .render(content.replace(/---[^-]+---/, ''));

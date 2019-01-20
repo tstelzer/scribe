@@ -6,7 +6,7 @@ export const compilePost = (templatePath: T.Path) => (
   post: T.Post,
 ): T.File => ({
   content: pug.compileFile(templatePath)({
-    postContent: post.content,
+    postContent: post.postContent,
     ...post.frontmatter,
   }),
   filepath: post.destinationPath,

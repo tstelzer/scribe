@@ -47,7 +47,7 @@ export type File = {filepath: string; content: string};
 export type Frontmatter = {
   category: string;
   excerpt: string;
-  published: Date;
+  published: string;
   slug: string;
   subtitle: string;
   tags: string[];
@@ -57,7 +57,7 @@ export type Frontmatter = {
 /** Individual article. */
 export type Post = {
   frontmatter: Frontmatter;
-  content: Html;
+  postContent: Html;
   sourcePath: Path;
   destinationPath: Path;
 };
