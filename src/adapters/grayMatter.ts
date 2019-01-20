@@ -30,12 +30,11 @@ export const fileToFrontmatter = ({content, filepath}: T.File): T.Frontmatter =>
     (a: any) => ({...a, meta: a.data}),
     ({
       meta: {category, excerpt, published, slug, subtitle, tags, title},
-      content: extractedContent,
+      // content: extractedContent,
       excerpt: extractedExcerpt,
     }) => ({
       category,
-      excerpt:
-        extractedExcerpt || excerpt || contentToExcerpt(extractedContent),
+      excerpt: excerpt || extractedExcerpt,
       published,
       slug: slug || filepathToSlug(filepath),
       subtitle,

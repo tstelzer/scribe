@@ -29,4 +29,5 @@ export const fileToHtml = ({content, filepath}: T.File): T.Html =>
     .use(withAttributes)
     .use(withTableOfContents)
     .use(withAnchors, {listType: 'ol'})
-    .render(content.replace(/---[^-]+---/, ''));
+    // FIXME: This removes front matter from content.
+    .render(content.replace(/---[^]+(?=---)---\n/gm, ''));

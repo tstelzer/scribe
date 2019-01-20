@@ -40,7 +40,7 @@ It will:
 
 * adapter interfaces
 
-## High Priority FIXMEs
+## High Priority Problems
 
 ### config
 
@@ -49,10 +49,12 @@ It will:
 
 ## scribe
 
+* when changing primary keys (title) of post, the old post stays in the post
+    context
 * watcher for pug layouts doesn't work
 * reload doesn't work
 
-## Low Priority FIXMEs
+## Low Priority Problems
 
 ### config
 
