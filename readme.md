@@ -4,13 +4,18 @@ Scribe is an oppinionated static site generator.
 
 It will:
 
-1. Generate individual HTML posts from markdown.
+1. Generate individual HTML pages from markdown posts.
 2. Compile HTML pages from pug templates.
 3. Compile css from scss stylesheets.
 4. Watch for changes automatically.
 5. Render a preview in the browser.
 
 ## High Priority TODOs
+
+### adapter/markdown
+
+* load all existing prism plugins
+* validation: check if syntax language exists for code blocks
 
 ### adapter/pug
 
