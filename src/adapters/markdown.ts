@@ -7,12 +7,16 @@ import * as withTableOfContents from 'markdown-it-toc-done-right';
 import * as prism from 'prismjs';
 
 import * as T from '../types';
-/** Highlightjs adapter for markdown-it. */
-// const highlight = (content: T.Html, language: string) =>
-//   '<code class="hljs">' + hljs.highlight(language, content).value + '</code>';
+
+// Yeah, this is dumb. Unfortunately this is how prismjs wants me to load
+// languages.
+const languages = ['haskell', 'diff'];
+languages.forEach(language => {
+  require(`prismjs/components/prism-${language}`);
+});
 
 const highlight = (content: T.Html, language: string) =>
-  prism.highlight(content, prism.languages.javascript);
+  prism.highlight(content, prism.languages[language]);
 
 /**
  * Takes a string of markdown and transforms it to html.
