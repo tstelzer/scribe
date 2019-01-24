@@ -8,6 +8,10 @@ import {parse, resolve} from './path';
 import {fail, isSuccess, message, succeed, validate} from './validation';
 
 const withContext = message('Parsing and generating the configuration.');
+
+/**
+ * Record of possible failure messages in the shape of message creator functions.
+ */
 const failureMessages: Record<string, (...values: any[]) => string> = {
   shouldBeString: (path: any) =>
     `The provided path "<%s${path}%>" to the configuration file should be a string, but was of type "<%t${typeof path}%>".`,
@@ -21,22 +25,49 @@ const failureMessages: Record<string, (...values: any[]) => string> = {
     `The Provided path "<%s${path}%>" for property "<%s${property}%>" must be a valid directory, but none was found.`,
 };
 
+/**
+ * Utility to construct failure messages.
+ * See `failureMessages` for list of possible creator functions.
+ */
 const t = R.mapObjIndexed(
   f => (...args: any[]) => withContext(f(...args)),
   failureMessages,
 );
 
+/**
+ * Assert that path belongs to a valid file.
+ * @impure
+ */
 const isFile = existsSync;
+
+/**
+ * Assert that path belongs to a valid directory.
+ * @impure
+ */
 const isDirectory = (path: string) =>
   existsSync(path) && lstatSync(path).isDirectory();
+
+/**
+ * Assert that path belongs to a valid directory.
+ * @impure
+ */
 const isDirectoryPath = R.allPass([RA.isString, isDirectory]);
 
+/**
+ * Validate string.
+ */
 const checkString: T.Validator<T.Path> = p =>
   R.type(p) !== 'String' ? fail(t.shouldBeString(p)) : succeed(p);
 
+/**
+ * Validate configuration file.
+ */
 const checkConfigurationFile: T.Validator<T.Path> = p =>
   !isFile(p) ? fail(t.configNeedsToBeFile(p)) : succeed(p);
 
+/**
+ * Validate file.
+ */
 const checkFile = (property: string): T.Validator<T.Config> => (record: any) =>
   !record[property]
     ? fail(t.propertyRequired(property))
@@ -44,8 +75,14 @@ const checkFile = (property: string): T.Validator<T.Config> => (record: any) =>
     ? fail(t.pathNeedsToBeFile(property, record[property]))
     : succeed(record[property]);
 
+/**
+ * Validate configuration path.
+ */
 const validateConfigPath = validate([checkString, checkConfigurationFile]);
 
+/**
+ * Validate directory.
+ */
 const checkDirectory = (property: string): T.Validator<T.Config> => (
   record: any,
 ) =>

@@ -19,9 +19,9 @@ export const validatePost = (post: T.Post): T.Post => {
     throw E('Field "title" is required');
   }
 
-  if (!subtitle) {
-    throw E('Field "subtitle" is required');
-  }
+  // if (!subtitle) {
+  //   throw E('Field "subtitle" is required');
+  // }
 
   if (!isValidDate(new Date(published))) {
     throw E('Field "published" is missing or incorrect');
