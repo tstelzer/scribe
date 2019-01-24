@@ -3,7 +3,7 @@ import * as Markdown from 'markdown-it';
 import * as withAbbr from 'markdown-it-abbr';
 import * as withAnchors from 'markdown-it-anchor';
 import * as withAttributes from 'markdown-it-attrs';
-import * as withTableOfContents from 'markdown-it-table-of-contents';
+import * as withTableOfContents from 'markdown-it-toc-done-right';
 import * as prism from 'prismjs';
 
 import * as T from '../types';
@@ -29,8 +29,16 @@ export const fileToHtml = ({content, filepath}: T.File): T.Html =>
     highlight,
   })
     .use(withAttributes)
-    .use(withTableOfContents)
-    .use(withAnchors, {listType: 'ol'})
+    .use(withTableOfContents, {
+      level: 2,
+    })
+    .use(withAnchors, {
+      listType: 'ol',
+      level: 2,
+      permalink: true,
+      permalinkBefore: true,
+      permalinkSymbol: '🔗',
+    })
     .use(withAbbr)
     // FIXME: This removes front matter from content.
     .render(content.replace(/---[^]+(?=---)---\n/gm, ''));
