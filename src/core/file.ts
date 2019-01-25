@@ -2,6 +2,7 @@ import {watch} from 'chokidar';
 import * as fs from 'fs';
 import {EOL} from 'os';
 import * as R from 'ramda';
+import * as RA from 'ramda-adjunct';
 import {bindNodeCallback, fromEvent, merge, Observable, Observer} from 'rxjs';
 import * as O from 'rxjs/operators';
 
@@ -57,20 +58,35 @@ export const readFile = (filePath: T.Path) =>
     O.map(content => ({content, filepath: filePath})),
   );
 
-const __watchDirPaths = (directoryPath: T.Path): Observable<any> => {
-  const watcher = watch(directoryPath, {ignoreInitial: false});
-  const newFiles = fromEvent(watcher, 'add');
-  const changedFiles = fromEvent(watcher, 'change');
-
-  return merge(newFiles, changedFiles);
-};
-
 /**
- * Watches for changes in `directoryPath` and returns a stream of file paths
- * for those files that changed.
+ * Watches for changes under path or paths and returns a stream of file paths
+ * for those files that changed. Expects either a single path or a list of
+ * paths.
  */
-export const watchDirPaths = (directoryPath: T.Path) =>
-  __watchDirPaths(directoryPath).pipe(O.map(R.head));
+export const watchDirPaths = (p: T.Path | [T.Path]): Observable<T.Path> => {
+  /**
+   * Watch for changes in `directoryPath` and returns a stream of file paths
+   * for those files that changed.
+   */
+  const watchDir = (directoryPath: T.Path) => {
+    const watcher = watch(directoryPath, {ignoreInitial: false});
+    const newFiles = fromEvent<T.Path>(watcher, 'add');
+    const changedFiles = fromEvent<T.Path>(watcher, 'change');
+
+    return merge(newFiles, changedFiles);
+  };
+
+  // The file watcher returns a tuple, we're only interested in the first
+  // element, which is the file path.
+  const f = (x: string) => watchDir(x).pipe(O.map(R.head));
+
+  const g = R.pipe(
+    R.map(f),
+    R.apply(merge),
+  );
+
+  return R.ifElse(RA.isArray, g, f)(p);
+};
 
 /**
  * Watches for changes in `directoryPath` and returns a stream of file contents

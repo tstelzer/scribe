@@ -5,29 +5,6 @@ import {
 } from 'fp-ts/lib/Validation';
 import * as path from 'path';
 
-/** A expected failure message. */
-export type Message = {
-  /** What was scribe doing when the failure occured. */
-  context: string;
-  /** A description of the failure. */
-  description: string;
-};
-
-/** List of expected failure messages. */
-export type Messages = Message[];
-
-/** Alias for Failure. */
-export type Failure<M> = _Failure<Messages, M>;
-
-/** Alias for Success. */
-export type Success<M> = _Success<Messages, M>;
-
-/** Alias for Validation. */
-export type Validation<M> = _Validation<Messages, M>;
-
-/** A function validating a value. */
-export type Validator<M> = (v: M) => Validation<M>;
-
 export type FileToFrontmatter = (file: File) => Frontmatter;
 export type FileToHtml = (file: File) => Html;
 export type PageToFile = (page: Page) => (postContext: PostContext) => File;

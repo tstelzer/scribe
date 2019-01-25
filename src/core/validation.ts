@@ -1,44 +1,121 @@
-import {traverse} from 'fp-ts/lib/Array';
+import {array} from 'fp-ts/lib/Array';
 import {getArrayMonoid} from 'fp-ts/lib/Monoid';
 import {
   failure as _failure,
+  Failure as _Failure,
   getApplicative,
   isSuccess as _isSuccess,
   success as _success,
+  Success as _Success,
+  Validation as _Validation,
 } from 'fp-ts/lib/Validation';
-import * as R from 'ramda';
 
-import * as T from '../types';
+/** A expected failure message. */
+export type Message = {
+  /** What were we doing when the Failure occured. */
+  context: string;
+  /** A description of the Failure. */
+  description: string;
+};
 
-/** Instance of an Applicative Validation. */
-export const validation = getApplicative(getArrayMonoid<T.Message>());
+/** Represents a failed Validation. */
+export type Failure<M> = _Failure<Message[], M>;
 
-/** Allows traversing over a validation. */
-const traverseV = traverse(validation);
+/** Represents a successful Validation. */
+export type Success<M> = _Success<Message[], M>;
 
-/**
- * Validates some `value` by applying a list of `checks`. Returns a
- * `Validation`, an applicative `Either`, wrapping a list of failure messages or
- * the `value` of type `M`, depending on the success of checks. Being an
- * instance of `applicative` means that it is not fail-fast but accumulating
- * messages.
- *
- * validate :: [(a -> Validation<b, a>)] -> a -> Validation<b, a>
- */
-export const validate = <M>(checks: Array<T.Validator<M>>) => (value: M) =>
-  traverseV(checks, f => f(value)).map(R.always(value));
+/** Either a Success or a Failure. */
+export type Validation<A> = _Validation<Message[], A>;
+
+/** A function validating some value. */
+export type Validator<A> = (v: A) => Validation<A>;
 
 /** Returns a Validation Failure. */
-export const fail = <A>(message: T.Message): T.Validation<A> =>
-  _failure([message]);
+export const fail = <A>(message: Message): Validation<A> => _failure([message]);
 
 /** Returns a Validation Success. */
-export const succeed = _success;
+export const pass = <A>(value: A): Validation<A> => _success(value);
 
 /** Asserts that Validation succeeded. */
 export const isSuccess = _isSuccess;
 
+/** Instance of an Applicative Monoid. */
+const validation = getApplicative(getArrayMonoid<Message>());
+
+/** Traverse over validation. */
+const traverse = array.traverse(validation);
+
 /** Generate failure message. */
-export const message = (context: string) => (
-  description: string,
-): T.Message => ({description, context});
+export const message = (context: string) => (description: string): Message => ({
+  description,
+  context,
+});
+
+/**
+ * Takes a record of a `predicate` and a `message` and runs the `predicate`
+ * against some `value`, returning a `Validation`. If you need more control
+ * over generating failure messages (i.e. the signature of `message` is too
+ * simplistic), or you want to handle predicates differently, simply write your
+ * own `Validator` by using the `pass` and `fail` functions.
+ */
+export const validate = <A>({
+  predicate,
+  message,
+}: {
+  predicate: (value: A) => boolean;
+  message: (value: A) => Message;
+}): Validator<A> => (value: A) =>
+  predicate(value) ? pass(value) : fail(message(value));
+
+/**
+ * Takes a list of `Validator`s and returns a new `Validator` which will apply
+ * every one of the original `Validator`s to some `value`. Makes use of the
+ * applicative nature of `Validation` and accumulates failure messages.
+ *
+ * @sig :: [(a -> Validation a)] -> a -> Validation a
+ */
+export const allPass = <A>(checks: Array<Validator<A>>): Validator<A> => (
+  value: A,
+) => traverse(checks, f => f(value)).map(() => value);
+
+export function pipe<A, B, C>(
+  ab: (value: A) => Validation<B>,
+  bc: (value: B) => Validation<C>,
+): (a: A) => Validation<C>;
+
+export function pipe<A, B, C, D>(
+  ab: (value: A) => Validation<B>,
+  bc: (value: B) => Validation<C>,
+  cd: (value: C) => Validation<D>,
+): (a: A) => Validation<D>;
+
+export function pipe<A, B, C, D, E>(
+  ab: (value: A) => Validation<B>,
+  bc: (value: B) => Validation<C>,
+  cd: (value: C) => Validation<D>,
+  de: (value: D) => Validation<E>,
+): (a: A) => Validation<E>;
+
+/**
+ * Performs left-right composition of `Validator`s. First `Failure` is
+ * short-circuited.
+ *
+ * @sig :: (a -> Validation b) -> ... -> (a -> Validation n)
+ */
+export function pipe(
+  ...fns: Array<Validator<any>>
+): (value: any) => Validation<any> {
+  const length = fns.length - 1;
+  return function(this: any, value: any) {
+    let result = pass(value);
+
+    for (let i = 0; i <= length; i++) {
+      if (!isSuccess(result)) {
+        break;
+      }
+      result = fns[i].call(this, result.value);
+    }
+
+    return result;
+  };
+}
