@@ -1,106 +1,134 @@
-import {existsSync, lstatSync} from 'fs';
+/**
+ * What is _not yet_ validated:
+ * * Initial argument (presumably path to configuration) is valid path.
+ * * Path points to JSON file.
+ *
+ * What _is_ Validated:
+ * * Required properties on configuration exist.
+ * * Property types are correct.
+ * * Properties point to file or directory paths.
+ */
 import * as R from 'ramda';
-import * as RA from 'ramda-adjunct';
-
 import {readAndParse} from './file';
 import {parse, resolve} from './path';
-import {allPass, fail, message, pass, pipe, validate} from './validation';
 
 import * as T from '../types';
+import * as P from './predicates';
+import {map, validate, validateAll, validateSequence} from './validation';
 
-const messages: Record<string, (...values: any[]) => string> = {
-  shouldBeString: (path: any) =>
-    `The provided path "<%s${path}%>" to the configuration file should be a string, but was of type "<%t${typeof path}%>".`,
-  configNeedsToBeFile: (path: string) =>
-    `Configuration under the provided path "<%s${path}" must to be a file, but none of was found.`,
-  pathNeedsToBeFile: ({property, path}) =>
-    `The Provided path "<%s${path}%>" for property "<%s${property}%>" must be a file, but none was found.`,
-  propertyRequired: (property: string) =>
-    `The property "<%s${property}%>" is required in configuration.`,
-  shouldBeValidDirectory: ({property, path}) =>
-    `The Provided path "<%s${path}%>" for property "<%s${property}%>" must be a valid directory, but none was found.`,
+// =============================================================================
+// Types.
+// =============================================================================
+
+/** Property Enum */
+enum Props {
+  styleIndex = 'styleIndex',
+  layoutPath = 'layoutPath',
+  posts = 'posts',
+  pages = 'pages',
+  styles = 'styles',
+  destination = 'destination',
+  layouts = 'layouts',
+}
+
+type UserConfig = {
+  [Props.posts]: string;
+  [Props.pages]: string;
+  [Props.styles]: string;
+  [Props.destination]: string;
+  [Props.layouts]: string;
+  [Props.styleIndex]?: string;
+  [Props.layoutPath]?: string;
+};
+
+export type Config = {
+  [Props.posts]: string;
+  [Props.pages]: string;
+  [Props.styles]: string;
+  [Props.destination]: string;
+  [Props.layouts]: string;
+  [Props.styleIndex]: string;
+  [Props.layoutPath]: string;
+};
+
+type K = keyof UserConfig;
+
+// =============================================================================
+// Failure Messages.
+// =============================================================================
+
+const context = 'While parsing and generating the configuration:\n';
+
+const t = {
+  propertyIsRequired: (k: K) => (a: UserConfig) =>
+    context + `The property "<%s${k}%>" is required in configuration.`,
+  propertyMustBeString: (k: K) => (a: UserConfig) =>
+    context +
+    `The property "<%s${k}%>" must be a string, but was ${typeof a[k]}.`,
+  propertyMustBeDirectory: (k: K) => (a: UserConfig) =>
+    context +
+    `The path at "<%s${
+      a[k]
+    }%>, from property "<%s${k}%>" must point to a directory, but none was found.`,
+  propertyMustBeFile: (k: K) => (a: UserConfig) =>
+    context +
+    `The path at "<%s${
+      a[k]
+    }%>, from property "<%s${k}%>" must point to a file, but none was found.`,
 };
 
 // =============================================================================
-// Predicates.
+// Config validation.
 // =============================================================================
 
-/**
- * Assert that path belongs to a valid file.
- * @impure
- */
-const isFile = existsSync;
+const optionalProps = [Props.styleIndex, Props.layoutPath];
+const requiredProps = [
+  Props.posts,
+  Props.pages,
+  Props.styles,
+  Props.destination,
+  Props.layouts,
+];
 
-/**
- * Assert that path belongs to a valid directory.
- * @impure
- */
-const isDirectory = (path: string) =>
-  existsSync(path) && lstatSync(path).isDirectory();
+const propIsRequired = (k: K) =>
+  validate<UserConfig>(R.has(k))(t.propertyIsRequired(k));
 
-/**
- * Assert that path belongs to a valid directory.
- * @impure
- */
-const isDirectoryPath = R.allPass([RA.isString, isDirectory]);
+const propIsString = (k: K) =>
+  validate<UserConfig>(a => R.type(a[k]) === 'String')(
+    t.propertyMustBeString(k),
+  );
 
-// =============================================================================
-// Config validations.
-// =============================================================================
+const optionalPropIsString = (k: K) =>
+  validate<UserConfig>(a => !a[k] || R.type(a[k]) === 'String')(
+    t.propertyMustBeString(k),
+  );
 
-const withContext = message('Parsing and generating the configuration.');
-
-/**
- * Utility to construct failure messages.
- * See `failureMessages` for list of possible creator functions.
- */
-const t = R.mapObjIndexed(
-  f => (...args: any[]) => withContext(f(...args)),
-  messages,
+const validateConfigKeys = validateSequence(
+  validateAll(requiredProps.map(propIsRequired)),
+  validateAll(
+    R.concat(
+      requiredProps.map(propIsString),
+      optionalProps.map(optionalPropIsString),
+    ),
+  ),
 );
 
-const validateString = validate<string>({
-  predicate: RA.isString,
-  message: t.shouldBeString,
-});
+const propIsDirectory = (k: K) =>
+  validate<UserConfig>(a => P.isDirectory(a[k] || ''))(
+    t.propertyMustBeDirectory(k),
+  );
 
-const validateFile = validate<T.Path>({
-  predicate: R.complement(isFile),
-  message: t.configNeedsToBeFile,
-});
+const optionalPropIsFile = (k: K) =>
+  validate<UserConfig>(a => !a[k] || P.isFile(a[k] || ''))(
+    t.propertyMustBeFile(k),
+  );
 
-const validateDirectory = validate<T.Path>({
-  predicate: R.complement(isDirectory),
-  message: t.shouldBeValidDirectory,
-});
-
-const validateProperty = (property: string) =>
-  validate({
-    predicate: R.has(property),
-    message: () => t.propertyRequired(property),
-  });
-
-const validateFilePath = pipe(
-  validateString,
-  validateFile,
+const validateConfigValues = validateAll(
+  R.concat(
+    requiredProps.map(propIsDirectory),
+    optionalProps.map(optionalPropIsFile),
+  ),
 );
-
-const validateConfigFile = pipe(
-  validateString,
-  validateFile,
-);
-
-const validateConfig = pipe(validateConfigFile);
-
-// const validateConfig = mapValidate(
-//   R.map(validateDirectory, [
-//     'styles',
-//     'posts',
-//     'pages',
-//     'layouts',
-//     'destination',
-//   ]).concat(R.map(validateFile, ['styleIndex', 'layoutPath'])),
-// );
 
 // =============================================================================
 // Implementation Details.
@@ -110,37 +138,31 @@ const validateConfig = pipe(validateConfigFile);
  * Takes a base path `from`, then a `configuration` and resolves all paths in
  * that configration based on the base path.
  */
-const resolvePaths = (from: T.ParsedPath) => (c: T.Config) => {
+const resolveConfigPaths = (s: T.Path, c: UserConfig): UserConfig => {
+  const from = parse(s);
   return {
-    styles: resolve(from, parse(c.styles)),
+    [Props.styles]: resolve(from, parse(c.styles)),
     pages: resolve(from, parse(c.pages)),
     posts: resolve(from, parse(c.posts)),
     destination: resolve(from, parse(c.destination)),
     layouts: resolve(from, parse(c.layouts)),
-    styleIndex: resolve(
-      parse(resolve(from, parse(c.styles))),
-      parse(c.styleIndex),
-    ),
-    layoutPath: resolve(
-      parse(resolve(from, parse(c.layouts))),
-      parse(c.layoutPath),
-    ),
+    styleIndex:
+      c.styleIndex &&
+      resolve(parse(resolve(from, parse(c.styles))), parse(c.styleIndex)),
+    layoutPath:
+      c.layoutPath &&
+      resolve(parse(resolve(from, parse(c.layouts))), parse(c.layoutPath)),
   };
 };
 
-// export const pathToConfig = (p: any): T.Validation<T.Config | string> => {
-//   // FIXME: assumes its a string
-//   const configPath = parse(p);
-//   const result = validateFilePath(configPath.full);
-//   return isSuccess(result)
-//     ? R.pipe(
-//         readAndParse,
-//         resolvePaths(configPath),
-//         validateConfig,
-//       )(result.value)
-//     : result;
-// };
+const mergeWithDefaults = (c: UserConfig): Config =>
+  R.mergeDeepRight({styleIndex: '', layoutPath: ''}, c);
 
-const mergeWithDefaults = R.identity;
-
-export default validateConfig;
+export default (s: T.Path) =>
+  R.pipe(
+    readAndParse,
+    validateConfigKeys,
+    v => map(v, c => resolveConfigPaths(s, c)),
+    v => map(v, validateConfigValues).getOrElse(v),
+    v => map(v, mergeWithDefaults),
+  )(s);

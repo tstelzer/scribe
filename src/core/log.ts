@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import * as R from 'ramda';
 
 import * as T from '../types';
+import * as V from './validation';
 
 const logTitle = R.pipe(
   (s: string) => chalk.yellowBright(s),
@@ -35,16 +36,14 @@ const logDescription = (description: string) => {
   const colorize = (_: string, type: Type, match: string) => types[type](match);
   const result = section.replace(/<%(\w)([^%>]+)%>/g, colorize);
 
-  console.log(chalk.yellow('Description:'), chalk.yellowBright(result));
+  console.log(chalk.yellowBright(result));
 };
 
-export const logFailures = (messages: T.Messages): void => {
-  logTitle('Scribe failed with the following messages:');
-
-  messages.forEach(({description, context}) => {
-    console.log('\n');
-
-    logContext(context);
+export const logFailures = (messages: V.Message[]): void => {
+  logTitle('Scribe encountered the following problems:');
+  console.log('\n');
+  messages.forEach(description => {
     logDescription(description);
+    console.log('\n');
   });
 };

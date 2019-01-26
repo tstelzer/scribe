@@ -11,12 +11,7 @@ import {
 } from 'fp-ts/lib/Validation';
 
 /** A expected failure message. */
-export type Message = {
-  /** What were we doing when the Failure occured. */
-  context: string;
-  /** A description of the Failure. */
-  description: string;
-};
+export type Message = string;
 
 /** Represents a failed Validation. */
 export type Failure<M> = _Failure<Message[], M>;
@@ -42,29 +37,23 @@ export const isSuccess = _isSuccess;
 /** Instance of an Applicative Monoid. */
 const validation = getApplicative(getArrayMonoid<Message>());
 
+export const map = validation.map;
+export const ap = validation.ap;
+export const of = validation.of;
+
 /** Traverse over validation. */
 const traverse = array.traverse(validation);
 
-/** Generate failure message. */
-export const message = (context: string) => (description: string): Message => ({
-  description,
-  context,
-});
-
 /**
- * Takes a record of a `predicate` and a `message` and runs the `predicate`
+ * Takes a `predicate`, then a `message` and runs the `predicate`
  * against some `value`, returning a `Validation`. If you need more control
  * over generating failure messages (i.e. the signature of `message` is too
  * simplistic), or you want to handle predicates differently, simply write your
  * own `Validator` by using the `pass` and `fail` functions.
  */
-export const validate = <A>({
-  predicate,
-  message,
-}: {
-  predicate: (value: A) => boolean;
-  message: (value: A) => Message;
-}): Validator<A> => (value: A) =>
+export const validate = <A>(predicate: (value: A) => boolean) => (
+  message: (value: A) => string,
+): Validator<A> => (value: A) =>
   predicate(value) ? pass(value) : fail(message(value));
 
 /**
@@ -74,22 +63,22 @@ export const validate = <A>({
  *
  * @sig :: [(a -> Validation a)] -> a -> Validation a
  */
-export const allPass = <A>(checks: Array<Validator<A>>): Validator<A> => (
+export const validateAll = <A>(checks: Array<Validator<A>>): Validator<A> => (
   value: A,
 ) => traverse(checks, f => f(value)).map(() => value);
 
-export function pipe<A, B, C>(
+export function validateSequence<A, B, C>(
   ab: (value: A) => Validation<B>,
   bc: (value: B) => Validation<C>,
 ): (a: A) => Validation<C>;
 
-export function pipe<A, B, C, D>(
+export function validateSequence<A, B, C, D>(
   ab: (value: A) => Validation<B>,
   bc: (value: B) => Validation<C>,
   cd: (value: C) => Validation<D>,
 ): (a: A) => Validation<D>;
 
-export function pipe<A, B, C, D, E>(
+export function validateSequence<A, B, C, D, E>(
   ab: (value: A) => Validation<B>,
   bc: (value: B) => Validation<C>,
   cd: (value: C) => Validation<D>,
@@ -102,7 +91,7 @@ export function pipe<A, B, C, D, E>(
  *
  * @sig :: (a -> Validation b) -> ... -> (a -> Validation n)
  */
-export function pipe(
+export function validateSequence(
   ...fns: Array<Validator<any>>
 ): (value: any) => Validation<any> {
   const length = fns.length - 1;
