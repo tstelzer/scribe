@@ -11,17 +11,17 @@
 import {compose} from 'fp-ts/lib/function';
 import * as R from 'ramda';
 
-import * as T from '../types';
-import {readAndParse} from './file';
-import {join, parse, resolve} from './path';
-import * as P from './predicates';
 import {
   flatMap,
   map,
   validate,
   validateAll,
   validateSequence,
-} from './validation';
+} from '../lib/validation';
+import * as T from '../types';
+import {readAndParse} from './file';
+import {join, parse, resolve} from './path';
+import * as P from './predicates';
 
 // =============================================================================
 // Types.

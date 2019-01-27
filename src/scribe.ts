@@ -11,10 +11,11 @@ import {compileCss} from './adapters/scss';
 import * as f from './core/file';
 import {reducePages, toPage} from './core/page';
 import {reducePostContext, validatePost} from './core/post';
+import * as V from './lib/validation';
 import * as T from './types';
 
 /**
- * Transforms a file to a domain post.
+ * Implements transforming a file to a domain post.
  */
 const fileToPost = ({
   fileToHtml,
@@ -24,35 +25,45 @@ const fileToPost = ({
   fileToHtml: T.FileToHtml;
   fileToFrontmatter: T.FileToFrontmatter;
   destinationDirectory: T.Path;
-}) => (file: T.File): T.Post => {
-  const frontmatter = fileToFrontmatter(file);
-  const postContent = fileToHtml(file);
-  const destinationPath = path.join(
-    destinationDirectory,
-    frontmatter.slug + '.html',
-  );
+}) => (file: T.File): V.Validation<T.Post> => {
+  try {
+    const frontmatter = fileToFrontmatter(file);
+    const postContent = fileToHtml(file);
+    const destinationPath = path.join(
+      destinationDirectory,
+      frontmatter.slug + '.html',
+    );
 
-  return {
-    frontmatter,
-    postContent,
-    sourcePath: file.filepath,
-    destinationPath,
-  };
+    return V.pass({
+      frontmatter,
+      postContent,
+      sourcePath: file.filepath,
+      destinationPath,
+    });
+  } catch (e) {
+    return V.fail(e.message);
+  }
 };
 
 /**
- * Compiles a list of pages from page and post contexts.
+ * Implements compiling pages. Compiles a list of pages from page and post
+ * contexts.
  */
 const compilePages = (compilePage: T.PageToFile) => ([
   pageContext,
   postContext,
 ]: [T.PageContext, T.PostContext]) => {
-  const result = [];
+  const pages: Array<V.Validation<T.File>> = [];
   for (const page of Object.values(pageContext)) {
-    result.push(compilePage(page)(postContext));
+    try {
+      const result = compilePage(page)(postContext);
+      pages.push(V.pass(result));
+    } catch (e) {
+      pages.push(V.fail(e.message));
+    }
   }
 
-  return result;
+  return pages;
 };
 
 export default (config: T.Config) => {
@@ -98,7 +109,7 @@ export default (config: T.Config) => {
         destinationDirectory: postDestination,
       }),
     ),
-    O.map(validatePost),
+    O.map(V.flatMap(validatePost)),
   );
 
   // Stream of compiled post files.
@@ -142,7 +153,6 @@ export default (config: T.Config) => {
 
   // === SINKS =================================================================
 
-  merge(compiledPosts$, compiledPages$, compiledStyles$).subscribe(
-    f.writeFile({next: () => undefined, error: console.error}),
-  );
+  return compiledPages$;
+  // return merge(compiledPosts$, compiledPages$, compiledStyles$);
 };

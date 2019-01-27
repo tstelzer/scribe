@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import * as R from 'ramda';
 
+import * as V from '../lib/validation';
 import * as T from '../types';
-import * as V from './validation';
 
 const logTitle = R.pipe(
   (s: string) => chalk.yellowBright(s),
@@ -20,11 +20,12 @@ const logContext = R.pipe(
   s => console.log(chalk.yellow('Context:'), s),
 );
 
-type Type = 's' | 't' | 'f';
+type Type = 's' | 't' | 'f' | 'e';
 const types: Record<Type, (s: string) => string> = {
   s: chalk.greenBright,
   t: chalk.cyanBright,
   f: chalk.whiteBright,
+  e: chalk.redBright,
 };
 
 /**

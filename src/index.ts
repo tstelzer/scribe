@@ -7,4 +7,8 @@ const configPath =
     ? process.argv[2]
     : 'no config path supplied';
 
-config(configPath).fold(logFailures, console.log);
+config(configPath)
+  .map(scribe)
+  .fold(logFailures, sink$ =>
+    sink$.subscribe(e => e.fold(logFailures, console.log)),
+  );
