@@ -5,6 +5,35 @@ import {
 } from 'fp-ts/lib/Validation';
 import * as path from 'path';
 
+/** Exclude properties `K` from `T`. */
+export type Omit<T, K> = Pick<T, Exclude<keyof T, K>>;
+
+/** Only keeps properties in Record `T` that are of type `U`. */
+export type FilterRecord<T, U> = NonNullable<
+  {[K in keyof T]: T[K] extends U ? K : never}[keyof T]
+>;
+
+/** Only keeps properties in Record `T` that are _not_ of type `U`. */
+export type DiffRecord<T, U> = NonNullable<
+  {[K in keyof T]: T[K] extends U ? never : K}[keyof T]
+>;
+
+/** Only keeps properties in Record `T` that are not optional. */
+export type FilterRequiredProps<T> = NonNullable<
+  {[K in keyof T]: T[K] extends NonNullable<T[K]> ? K : never}[keyof T]
+>;
+
+/** Only keeps properties in Record `T` that are optional. */
+export type FilterOptionalProps<T> = NonNullable<
+  {[K in keyof T]: T[K] extends NonNullable<T[K]> ? never : K}[keyof T]
+>;
+
+/** Only keeps properties in Record `T` that are arrays. */
+export type FilterArrayProps<T> = FilterRecord<T, []>;
+
+/** Only keeps properties in Record `T` that are strings. */
+export type FilterStringProps<T> = FilterRecord<T, string>;
+
 export type FileToFrontmatter = (file: File) => Frontmatter;
 export type FileToHtml = (file: File) => Html;
 export type PageToFile = (page: Page) => (postContext: PostContext) => File;

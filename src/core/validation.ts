@@ -57,7 +57,7 @@ const traverse = array.traverse(validation);
  * simplistic), or you want to handle predicates differently, simply write your
  * own `Validator` by using the `pass` and `fail` functions.
  */
-export const validate = <A>(predicate: (value: A) => boolean) => (
+export const validate = <A>(predicate: (value: any) => boolean) => (
   message: (value: A) => string,
 ): Validator<A> => (value: A) =>
   predicate(value) ? pass(value) : fail(message(value));
@@ -66,8 +66,6 @@ export const validate = <A>(predicate: (value: A) => boolean) => (
  * Takes a list of `Validator`s and returns a new `Validator` which will apply
  * every one of the original `Validator`s to some `value`. Makes use of the
  * applicative nature of `Validation` and accumulates failure messages.
- *
- * @sig :: [(a -> Validation a)] -> a -> Validation a
  */
 export const validateAll = <A>(checks: Array<Validator<A>>): Validator<A> => (
   value: A,
@@ -94,8 +92,6 @@ export function validateSequence<A, B, C, D, E>(
 /**
  * Performs fail-fast, left-right composition of `Validator`s. First `Failure`
  * is short-circuited.
- *
- * @sig :: (a -> Validation b) -> ... -> (a -> Validation n)
  */
 export function validateSequence(
   ...fns: Array<Validator<any>>

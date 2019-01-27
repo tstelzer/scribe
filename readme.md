@@ -9,3 +9,11 @@ It will:
 3. Compile css from scss stylesheets.
 4. Watch for changes automatically.
 5. Render a preview in the browser.
+
+## Conguration
+
+Scribe expects a path to a configuration with the following schema:
+
+```typescript
+type UserConfig = {};
+```

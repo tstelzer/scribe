@@ -38,3 +38,5 @@ export const resolve = (from: T.ParsedPath, to: T.ParsedPath) =>
   to.isAbsolute
     ? to.full
     : path.join(from.isDirectory ? from.full : from.dir, to.full);
+
+export const join = path.join;
