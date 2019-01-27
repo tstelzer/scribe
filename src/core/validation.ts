@@ -4,6 +4,7 @@ import {
   failure as _failure,
   Failure as _Failure,
   getApplicative,
+  getMonad,
   isSuccess as _isSuccess,
   success as _success,
   Success as _Success,
@@ -35,9 +36,14 @@ export const pass = <A>(value: A): Validation<A> => _success(value);
 export const isSuccess = _isSuccess;
 
 /** Instance of an Applicative Monoid. */
-const validation = getApplicative(getArrayMonoid<Message>());
+const validation = getMonad(getArrayMonoid<Message>());
 
-export const map = validation.map;
+export const flatMap = <A>(f: (v: A) => any) => (v: Validation<A>) =>
+  isSuccess(v) ? f(v.value) : v;
+
+export const map = <A>(f: (v: A) => any) => (v: Validation<A>) =>
+  validation.map(v, f);
+
 export const ap = validation.ap;
 export const of = validation.of;
 
@@ -86,8 +92,8 @@ export function validateSequence<A, B, C, D, E>(
 ): (a: A) => Validation<E>;
 
 /**
- * Performs left-right composition of `Validator`s. First `Failure` is
- * short-circuited.
+ * Performs fail-fast, left-right composition of `Validator`s. First `Failure`
+ * is short-circuited.
  *
  * @sig :: (a -> Validation b) -> ... -> (a -> Validation n)
  */

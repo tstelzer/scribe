@@ -14,13 +14,18 @@ import {parse, resolve} from './path';
 
 import * as T from '../types';
 import * as P from './predicates';
-import {map, validate, validateAll, validateSequence} from './validation';
+import {
+  flatMap,
+  map,
+  validate,
+  validateAll,
+  validateSequence,
+} from './validation';
 
 // =============================================================================
 // Types.
 // =============================================================================
 
-/** Property Enum */
 enum Props {
   styleIndex = 'styleIndex',
   layoutPath = 'layoutPath',
@@ -131,17 +136,17 @@ const validateConfigValues = validateAll(
 );
 
 // =============================================================================
-// Implementation Details.
+// Implementation.
 // =============================================================================
 
 /**
  * Takes a base path `from`, then a `configuration` and resolves all paths in
  * that configration based on the base path.
  */
-const resolveConfigPaths = (s: T.Path, c: UserConfig): UserConfig => {
+const resolveConfigPaths = (s: T.Path) => (c: UserConfig): UserConfig => {
   const from = parse(s);
   return {
-    [Props.styles]: resolve(from, parse(c.styles)),
+    styles: resolve(from, parse(c.styles)),
     pages: resolve(from, parse(c.pages)),
     posts: resolve(from, parse(c.posts)),
     destination: resolve(from, parse(c.destination)),
@@ -162,7 +167,7 @@ export default (s: T.Path) =>
   R.pipe(
     readAndParse,
     validateConfigKeys,
-    v => map(v, c => resolveConfigPaths(s, c)),
-    v => map(v, validateConfigValues).getOrElse(v),
-    v => map(v, mergeWithDefaults),
+    map(resolveConfigPaths(s)),
+    flatMap(validateConfigValues),
+    map(mergeWithDefaults),
   )(s);
