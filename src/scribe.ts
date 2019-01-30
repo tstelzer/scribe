@@ -8,9 +8,10 @@ import {fileToHtml} from './adapters/markdown';
 import {compilePage, compilePost} from './adapters/pug';
 import {compileCss} from './adapters/scss';
 
+import {Config} from './core/config';
 import * as f from './core/file';
 import {reducePages, toPage} from './core/page';
-import {reducePostContext, validatePost} from './core/post';
+import {reducePostContext, validatePost2} from './core/post';
 import * as V from './lib/validation';
 import * as T from './types';
 
@@ -66,7 +67,7 @@ const compilePages = (compilePage: T.PageToFile) => ([
   return pages;
 };
 
-export default (config: T.Config) => {
+export default (config: Config) => {
   // === HOT RELOADING =========================================================
 
   const bs = browserSync.create();
@@ -109,50 +110,52 @@ export default (config: T.Config) => {
         destinationDirectory: postDestination,
       }),
     ),
-    O.map(V.flatMap(validatePost)),
+    O.map(V.flatMap(validatePost2(config))),
   );
 
   // Stream of compiled post files.
-  const compiledPosts$ = posts$.pipe(O.map(compilePost(config.layoutPath)));
+  // const compiledPosts$ = posts$.pipe(
+  //   O.map(V.flatMap(compilePost(config.postTemplate))),
+  // );
 
   // --- pages -----------------------------------------------------------------
 
   // Stream of post context, used in conjunction with pages.
-  const postContext$ = posts$.pipe(
-    O.scan(reducePostContext, {posts: {}}),
-    O.debounceTime(200),
-  );
+  // const postContext$ = posts$.pipe(
+  //   O.scan(reducePostContext, {posts: {}}),
+  //   O.debounceTime(200),
+  // );
 
   // Stream of page context.
-  const pageContext$ = pageSource$.pipe(
-    O.filter(s => !s.match(/.+\/_.+/)),
-    O.map(toPage(config.destination)),
-    O.scan(reducePages, {}),
-    O.debounceTime(200),
-  );
+  // const pageContext$ = pageSource$.pipe(
+  //   O.filter(s => !s.match(/.+\/_.+/)),
+  //   O.map(toPage(config.destination)),
+  //   O.scan(reducePages, {}),
+  //   O.debounceTime(200),
+  // );
 
   // Stream of compiled pages.
-  const compiledPages$ = combineLatest(pageContext$, postContext$).pipe(
-    O.flatMap(compilePages(compilePage)),
-  );
+  // const compiledPages$ = combineLatest(pageContext$, postContext$).pipe(
+  //   O.flatMap(compilePages(compilePage)),
+  // );
 
   // --- styles ----------------------------------------------------------------
 
-  const styleOutputPath = path.join(config.destination, 'css', 'styles.css');
+  // const styleOutputPath = path.join(config.destination, 'css', 'styles.css');
 
   // Stream of compiled styles.
-  const compiledStyles$ = stylesSource$.pipe(
-    O.map(({content}) => ({
-      content,
-      includePaths: [config.styles],
-      filepath: styleOutputPath,
-    })),
-    O.flatMap(compileCss),
-    O.debounceTime(200),
-  );
+  // const compiledStyles$ = stylesSource$.pipe(
+  //   O.map(({content}) => ({
+  //     content,
+  //     includePaths: [config.styles],
+  //     filepath: styleOutputPath,
+  //   })),
+  //   O.flatMap(compileCss),
+  //   O.debounceTime(200),
+  // );
 
   // === SINKS =================================================================
 
-  return compiledPages$;
+  return posts$;
   // return merge(compiledPosts$, compiledPages$, compiledStyles$);
 };

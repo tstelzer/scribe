@@ -1,16 +1,24 @@
 import {format as formatDate} from 'date-fns';
 import * as R from 'ramda';
+import * as RA from 'ramda-adjunct';
 
+import {Config} from '../core/config';
 import * as V from '../lib/validation';
 import * as T from '../types';
 
 const excludes = R.complement(R.contains);
 
-const context = 'While parsing and compiling a post :\n';
+const context = 'While parsing and compiling a post:\n';
 
 const t = {
-  propertyIsRequired: (s: string) =>
-    `${context}The property "<%s${s}%>" is required in configuration.`,
+  incorrectCategory: (xs: string[], s: string) =>
+    `${context}The category must be one of "<%s${xs.join(
+      ', ',
+    )}%>", but was "<%e${s}%>".`,
+  propertyIsRequired: (k: string) => (a: T.Post) =>
+    `${context}The property "<%s${k}%>" is required in frontmatter of post <%s${
+      a.sourcePath
+    }%>.`,
 };
 
 const isValidDate = (date: any) =>
@@ -22,17 +30,32 @@ const isValidDate = (date: any) =>
 // Types.
 // =============================================================================
 
-enum K {
-  categories = 'categories',
-}
-
 // =============================================================================
 // Post validation.
 // =============================================================================
 
-export const validatePost2 = (post: T.Post): V.Validation<T.Post> => {
-  return V.pass(post);
-};
+const validCategory = (allCategories: string[]) => (
+  post: T.Post,
+): V.Validation<T.Post> =>
+  R.includes(post.frontmatter.category, allCategories)
+    ? V.pass(post)
+    : V.fail(t.incorrectCategory(allCategories, post.frontmatter.category));
+
+const isPresent = (property: string) => (value: any) =>
+  RA.isNotNil(value) && R.has(property, value);
+
+const propIsRequired = (property: string) => (
+  p: T.Post,
+): V.Validation<T.Post> =>
+  R.path(['frontmatter', property], p)
+    ? V.pass(p)
+    : V.fail(t.propertyIsRequired(property)(p));
+
+export const validatePost2 = (config: Config) =>
+  V.validateAll<T.Post>([
+    validCategory(config.categories),
+    ...['published', 'title'].map(propIsRequired),
+  ]);
 
 // =============================================================================
 // Rest.
@@ -55,12 +78,12 @@ export const validatePost = (post: T.Post): T.Post => {
     throw E('Field "published" is missing or incorrect');
   }
 
-  const categories = ['opinion', 'story', 'tutorial', 'concept', 'review'];
-  const cs = R.join(', ', categories);
+  // const categories = ['opinion', 'story', 'tutorial', 'concept', 'review'];
+  // const cs = R.join(', ', categories);
 
-  if (!category || excludes(category, categories)) {
-    throw E('Field "category" is required and must be one of ' + cs);
-  }
+  // if (!category || excludes(category, categories)) {
+  //   throw E('Field "category" is required and must be one of ' + cs);
+  // }
 
   const parsePublished = (s: string) => formatDate(new Date(s), 'MMMM YYYY');
 

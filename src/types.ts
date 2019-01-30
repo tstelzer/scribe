@@ -86,13 +86,3 @@ export type Page = {
 export type PageContext = {
   [title: string]: Page;
 };
-
-export type Config = {
-  posts: string;
-  pages: string;
-  styles: string;
-  layouts: string;
-  destination: string;
-  styleIndex: string;
-  layoutPath: string;
-};

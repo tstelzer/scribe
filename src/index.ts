@@ -10,5 +10,9 @@ const configPath =
 config(configPath)
   .map(scribe)
   .fold(logFailures, sink$ =>
-    sink$.subscribe(e => e.fold(logFailures, console.log)),
+    sink$.subscribe(e =>
+      e.fold(logFailures, post =>
+        console.log(`WROTE FILE "${post.destinationPath}".`),
+      ),
+    ),
   );

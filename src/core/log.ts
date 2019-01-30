@@ -43,8 +43,8 @@ const logDescription = (description: string) => {
 export const logFailures = (messages: V.Message[]): void => {
   logTitle('Scribe encountered the following problems:');
   console.log('\n');
-  messages.forEach(description => {
-    logDescription(description);
+  messages.forEach(message => {
+    logDescription(message);
     console.log('\n');
   });
 };
