@@ -11,8 +11,8 @@ config(configPath)
   .map(scribe)
   .fold(logFailures, sink$ =>
     sink$.subscribe(e =>
-      e.fold(logFailures, post =>
-        console.log(`WROTE FILE "${post.destinationPath}".`),
+      e.fold(logFailures, file =>
+        console.log(`WROTE FILE "${file.destinationPath}".`),
       ),
     ),
   );

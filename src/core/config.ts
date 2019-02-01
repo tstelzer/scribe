@@ -229,7 +229,7 @@ const mergeWithDefaults = (c: UserConfig): Config =>
   );
 
 /**
- * Validate `UserConfig` and return a full `Config`.
+ * Takes a path to some `UserConfig` and returns a `Validation` of a `Config`.
  */
 export default (s: T.Path) =>
   compose(

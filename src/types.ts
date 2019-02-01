@@ -34,7 +34,7 @@ export type FilterArrayProps<T> = FilterRecord<T, []>;
 /** Only keeps properties in Record `T` that are strings. */
 export type FilterStringProps<T> = FilterRecord<T, string>;
 
-export type FileToFrontmatter = (file: File) => Frontmatter;
+export type FileToFrontmatter = (file: File) => UserFrontmatter;
 export type FileToHtml = (file: File) => Html;
 export type PageToFile = (page: Page) => (postContext: PostContext) => File;
 export type Logger = (...a: any) => void;
@@ -49,11 +49,30 @@ export interface ParsedPath extends path.ParsedPath {
 }
 export type File = {filepath: string; content: string};
 
-/** Post metadata. */
-export type Frontmatter = {
+/** Raw Post metadata. */
+export type UserFrontmatter = {
   category: string;
   excerpt: string;
   published: string;
+  slug: string;
+  subtitle: string;
+  tags: string[];
+  title: string;
+};
+
+/** Raw Individual article. */
+export type UserPost = {
+  frontmatter: UserFrontmatter;
+  postContent: Html;
+  sourcePath: Path;
+  destinationPath: Path;
+};
+
+/** Raw Post metadata. */
+export type Frontmatter = {
+  category: string;
+  excerpt: string;
+  published: Date;
   slug: string;
   subtitle: string;
   tags: string[];

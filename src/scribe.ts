@@ -1,7 +1,9 @@
 import browserSync = require('browser-sync');
+import {compose} from 'fp-ts/lib/function';
 import path = require('path');
-import {combineLatest, merge} from 'rxjs';
-import O = require('rxjs/operators');
+import * as R from 'ramda';
+import * as Rx from 'rxjs';
+import * as RxO from 'rxjs/operators';
 
 import {fileToFrontmatter} from './adapters/grayMatter';
 import {fileToHtml} from './adapters/markdown';
@@ -11,7 +13,7 @@ import {compileCss} from './adapters/scss';
 import {Config} from './core/config';
 import * as f from './core/file';
 import {reducePages, toPage} from './core/page';
-import {reducePostContext, validatePost2} from './core/post';
+import {reducePostContext, toPost, validatePost} from './core/post';
 import * as V from './lib/validation';
 import * as T from './types';
 
@@ -26,7 +28,7 @@ const fileToPost = ({
   fileToHtml: T.FileToHtml;
   fileToFrontmatter: T.FileToFrontmatter;
   destinationDirectory: T.Path;
-}) => (file: T.File): V.Validation<T.Post> => {
+}) => (file: T.File): V.Validation<T.UserPost> => {
   try {
     const frontmatter = fileToFrontmatter(file);
     const postContent = fileToHtml(file);
@@ -92,8 +94,8 @@ export default (config: Config) => {
   // Stream of scss source files.
   const stylesSource$ = f
     .watchDirPaths(config.styles)
-    .pipe(O.debounceTime(100))
-    .pipe(O.flatMap(_ => f.readFile(config.styleIndex)));
+    .pipe(RxO.debounceTime(100))
+    .pipe(RxO.flatMap(_ => f.readFile(config.styleIndex)));
 
   // === MAIN ==================================================================
 
@@ -101,30 +103,44 @@ export default (config: Config) => {
 
   const postDestination = path.join(config.destination, 'posts');
 
-  // Stream of domain posts.
+  // Stream of posts.
   const posts$ = postSource$.pipe(
-    O.map(
-      fileToPost({
-        fileToFrontmatter,
-        fileToHtml,
-        destinationDirectory: postDestination,
-      }),
+    RxO.map(
+      compose(
+        V.map(toPost),
+        V.flatMap(validatePost(config)),
+        fileToPost({
+          fileToFrontmatter,
+          fileToHtml,
+          destinationDirectory: postDestination,
+        }),
+      ),
     ),
-    O.map(V.flatMap(validatePost2(config))),
   );
 
   // Stream of compiled post files.
-  // const compiledPosts$ = posts$.pipe(
-  //   O.map(V.flatMap(compilePost(config.postTemplate))),
-  // );
+  const compiledPosts$ = posts$.pipe(
+    RxO.map(V.map(compilePost(config.postTemplate))),
+  );
 
   // --- pages -----------------------------------------------------------------
 
+  const partition = <A>(
+    predicate: (v: A) => boolean,
+    source$: Rx.Observable<A>,
+  ) => RxO.partition(predicate)(source$);
+
   // Stream of post context, used in conjunction with pages.
-  // const postContext$ = posts$.pipe(
-  //   O.scan(reducePostContext, {posts: {}}),
-  //   O.debounceTime(200),
-  // );
+  const postContext$ = () => {
+    const failures$ = posts$.pipe(RxO.filter(V.isFailure));
+    const successes$ = posts$.pipe(RxO.filter(V.isSuccess));
+    return Rx.merge(
+      failures$,
+      successes$,
+      // successes$.pipe(RxO.scan(reducePostContext, {posts: {}})),
+    );
+    // const [successes$, failures$] = posts$.pipe(RxO.scan(reducePostContext, {posts: {}}), RxO.debounceTime(200));
+  };
 
   // Stream of page context.
   // const pageContext$ = pageSource$.pipe(
@@ -156,6 +172,6 @@ export default (config: Config) => {
 
   // === SINKS =================================================================
 
-  return posts$;
+  return postContext$();
   // return merge(compiledPosts$, compiledPages$, compiledStyles$);
 };

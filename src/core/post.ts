@@ -1,12 +1,14 @@
-import {format as formatDate} from 'date-fns';
+import {format as formatDate, isValid, parse as parseDate} from 'date-fns';
+import {Lens} from 'monocle-ts';
 import * as R from 'ramda';
-import * as RA from 'ramda-adjunct';
 
 import {Config} from '../core/config';
 import * as V from '../lib/validation';
 import * as T from '../types';
 
-const excludes = R.complement(R.contains);
+// =============================================================================
+// Post validation.
+// =============================================================================
 
 const context = 'While parsing and compiling a post:\n';
 
@@ -15,85 +17,56 @@ const t = {
     `${context}The category must be one of "<%s${xs.join(
       ', ',
     )}%>", but was "<%e${s}%>".`,
-  propertyIsRequired: (k: string) => (a: T.Post) =>
+  propertyIsRequired: (k: string) => (a: T.UserPost) =>
     `${context}The property "<%s${k}%>" is required in frontmatter of post <%s${
       a.sourcePath
     }%>.`,
+  publishedMustBeValidDate: (a: T.UserPost) =>
+    `${context}The property <%spublished%> must be a valid Date, but was <%e${
+      a.frontmatter.published
+    }%>.`,
 };
 
-const isValidDate = (date: any) =>
-  date &&
-  Object.prototype.toString.call(date) === '[object Date]' &&
-  !isNaN(date);
-
-// =============================================================================
-// Types.
-// =============================================================================
-
-// =============================================================================
-// Post validation.
-// =============================================================================
-
 const validCategory = (allCategories: string[]) => (
-  post: T.Post,
-): V.Validation<T.Post> =>
+  post: T.UserPost,
+): V.Validation<T.UserPost> =>
   R.includes(post.frontmatter.category, allCategories)
     ? V.pass(post)
     : V.fail(t.incorrectCategory(allCategories, post.frontmatter.category));
 
-const isPresent = (property: string) => (value: any) =>
-  RA.isNotNil(value) && R.has(property, value);
-
 const propIsRequired = (property: string) => (
-  p: T.Post,
-): V.Validation<T.Post> =>
+  p: T.UserPost,
+): V.Validation<T.UserPost> =>
   R.path(['frontmatter', property], p)
     ? V.pass(p)
     : V.fail(t.propertyIsRequired(property)(p));
 
-export const validatePost2 = (config: Config) =>
-  V.validateAll<T.Post>([
-    validCategory(config.categories),
-    ...['published', 'title'].map(propIsRequired),
-  ]);
+const publishIsDate = (p: T.UserPost): V.Validation<T.UserPost> =>
+  isValid(new Date(p.frontmatter.published))
+    ? V.pass(p)
+    : V.fail(t.publishedMustBeValidDate(p));
+
+export const validatePost = (config: Config) =>
+  V.validateSequence(
+    V.validateAll<T.UserPost>(
+      ['published', 'title', 'category'].map(propIsRequired),
+    ),
+    V.validateAll<T.UserPost>([
+      validCategory(config.categories),
+      publishIsDate,
+    ]),
+  );
 
 // =============================================================================
-// Rest.
-// =============================================================================
-export const validatePost = (post: T.Post): T.Post => {
-  const {frontmatter, postContent, sourcePath} = post;
-  const {title, subtitle, published, category} = frontmatter;
 
-  const E = (s: string) => new Error(s + `for post: ${sourcePath}.`);
-
-  if (!title) {
-    throw E('Field "title" is required');
-  }
-
-  // if (!subtitle) {
-  //   throw E('Field "subtitle" is required');
-  // }
-
-  if (!isValidDate(new Date(published))) {
-    throw E('Field "published" is missing or incorrect');
-  }
-
-  // const categories = ['opinion', 'story', 'tutorial', 'concept', 'review'];
-  // const cs = R.join(', ', categories);
-
-  // if (!category || excludes(category, categories)) {
-  //   throw E('Field "category" is required and must be one of ' + cs);
-  // }
-
-  const parsePublished = (s: string) => formatDate(new Date(s), 'MMMM YYYY');
-
+export const toPost = (a: T.UserPost): T.Post => {
   return R.evolve(
     {
       frontmatter: {
-        published: parsePublished,
+        published: parseDate,
       },
     },
-    post,
+    a,
   );
 };
 
