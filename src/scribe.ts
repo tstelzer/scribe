@@ -5,10 +5,10 @@ import * as R from 'ramda';
 import * as Rx from 'rxjs';
 import * as RxO from 'rxjs/operators';
 
-import {fileToFrontmatter} from './adapters/grayMatter';
-import {fileToHtml} from './adapters/markdown';
-import {compilePage, compilePost} from './adapters/pug';
-import {compileCss} from './adapters/scss';
+import * as frontmatterAdapter from './adapters/grayMatter';
+import * as markdownAdapter from './adapters/markdown';
+import * as templateAdapter from './adapters/pug';
+import * as styleAdapter from './adapters/scss';
 
 import {Config} from './core/config';
 import * as f from './core/file';
@@ -20,7 +20,7 @@ import * as T from './types';
 /**
  * Implements transforming a file to a domain post.
  */
-const fileToPost = ({
+const fileToPostV = ({
   fileToHtml,
   fileToFrontmatter,
   destinationDirectory,
@@ -48,11 +48,21 @@ const fileToPost = ({
   }
 };
 
+const compilePostV = (adapter: T.PostToFile) => (p: T.Path) => (
+  post: T.Post,
+): V.Validation<T.File> => {
+  try {
+    return V.pass(adapter(p)(post));
+  } catch (e) {
+    return V.fail(e.message);
+  }
+};
+
 /**
  * Implements compiling pages. Compiles a list of pages from page and post
  * contexts.
  */
-const compilePages = (compilePage: T.PageToFile) => ([
+const compilePagesV = (compilePage: T.PageToFile) => ([
   pageContext,
   postContext,
 ]: [T.PageContext, T.PostContext]) => {
@@ -70,11 +80,15 @@ const compilePages = (compilePage: T.PageToFile) => ([
 };
 
 export default (config: Config) => {
-  // === HOT RELOADING =========================================================
+  // ===========================================================================
+  // Hot Reloading.
+  // ===========================================================================
 
-  const bs = browserSync.create();
-
-  bs.init({
+  // Initialize browsersync instance, which kinda does its own thing on the
+  // side. For now I don't really mind that its impure because its tangiential
+  // to the main business logic.
+  browserSync.create().init({
+    logLevel: 'silent',
     online: false,
     server: config.destination,
     open: false,
@@ -83,7 +97,9 @@ export default (config: Config) => {
     watch: true,
   });
 
-  // === SOURCES ===============================================================
+  // ===========================================================================
+  // File Sources.
+  // ===========================================================================
 
   // Stream of post source files.
   const postSource$ = f.watchDirContents(config.posts);
@@ -97,9 +113,9 @@ export default (config: Config) => {
     .pipe(RxO.debounceTime(100))
     .pipe(RxO.flatMap(_ => f.readFile(config.styleIndex)));
 
-  // === MAIN ==================================================================
-
-  // --- posts -----------------------------------------------------------------
+  // ===========================================================================
+  // Posts.
+  // ===========================================================================
 
   const postDestination = path.join(config.destination, 'posts');
 
@@ -109,9 +125,9 @@ export default (config: Config) => {
       compose(
         V.map(toPost),
         V.flatMap(validatePost(config)),
-        fileToPost({
-          fileToFrontmatter,
-          fileToHtml,
+        fileToPostV({
+          fileToFrontmatter: frontmatterAdapter.fileToFrontmatter,
+          fileToHtml: markdownAdapter.fileToHtml,
           destinationDirectory: postDestination,
         }),
       ),
@@ -120,58 +136,68 @@ export default (config: Config) => {
 
   // Stream of compiled post files.
   const compiledPosts$ = posts$.pipe(
-    RxO.map(V.map(compilePost(config.postTemplate))),
+    RxO.map(
+      V.flatMap(compilePostV(templateAdapter.compilePost)(config.postTemplate)),
+    ),
   );
 
-  // --- pages -----------------------------------------------------------------
+  // ===========================================================================
+  // Compiling Pages.
+  // ===========================================================================
 
-  const partition = <A>(
-    predicate: (v: A) => boolean,
-    source$: Rx.Observable<A>,
-  ) => RxO.partition(predicate)(source$);
+  // Because I haven't figured out yet how to scan over an Observable of
+  // Validations I'm leaving the context of Validation for accumulating the
+  // contexts until there is actually a possibility of failure.
 
-  // Stream of post context, used in conjunction with pages.
-  const postContext$ = () => {
-    const failures$ = posts$.pipe(RxO.filter(V.isFailure));
-    const successes$ = posts$.pipe(RxO.filter(V.isSuccess));
-    return Rx.merge(
-      failures$,
-      successes$,
-      // successes$.pipe(RxO.scan(reducePostContext, {posts: {}})),
-    );
-    // const [successes$, failures$] = posts$.pipe(RxO.scan(reducePostContext, {posts: {}}), RxO.debounceTime(200));
-  };
+  // Partition off the failed posts.
+  const failedPosts$ = posts$.pipe(RxO.filter(V.isFailure));
 
-  // Stream of page context.
-  // const pageContext$ = pageSource$.pipe(
-  //   O.filter(s => !s.match(/.+\/_.+/)),
-  //   O.map(toPage(config.destination)),
-  //   O.scan(reducePages, {}),
-  //   O.debounceTime(200),
-  // );
+  // Stream of accumulated post context.
+  const postContext$ = posts$.pipe(
+    RxO.filter(V.isSuccess),
+    RxO.map(v => v.value),
+    RxO.scan(reducePostContext, {posts: {}}),
+  );
+
+  const isIncludedFile = (s: string) => !!s.match(/.+\/_.+/);
+
+  // Stream of accumulated page context.
+  const pageContext$ = pageSource$.pipe(
+    RxO.filter(R.complement(isIncludedFile)),
+    RxO.map(toPage(config.destination)),
+    RxO.scan(reducePages, {}),
+    RxO.debounceTime(200),
+  );
+
+  // Now that we're done accumulating context and because we have the
+  // possibility of failure again, we're re-entering the realm of Validation.
 
   // Stream of compiled pages.
-  // const compiledPages$ = combineLatest(pageContext$, postContext$).pipe(
-  //   O.flatMap(compilePages(compilePage)),
-  // );
+  const compiledPages$ = Rx.combineLatest(pageContext$, postContext$).pipe(
+    RxO.flatMap(compilePagesV(templateAdapter.compilePage)),
+  );
 
-  // --- styles ----------------------------------------------------------------
+  // ===========================================================================
+  // Compiling Styles.
+  // ===========================================================================
 
   // const styleOutputPath = path.join(config.destination, 'css', 'styles.css');
 
   // Stream of compiled styles.
   // const compiledStyles$ = stylesSource$.pipe(
-  //   O.map(({content}) => ({
+  //   RxO.map(({content}) => ({
   //     content,
   //     includePaths: [config.styles],
   //     filepath: styleOutputPath,
   //   })),
-  //   O.flatMap(compileCss),
-  //   O.debounceTime(200),
+  //   RxO.flatMap(styleAdapter.compileCss),
+  //   RxO.debounceTime(200),
   // );
 
-  // === SINKS =================================================================
-
-  return postContext$();
-  // return merge(compiledPosts$, compiledPages$, compiledStyles$);
+  return Rx.merge(
+    failedPosts$,
+    compiledPosts$,
+    compiledPages$,
+    // compiledStyles$,
+  );
 };

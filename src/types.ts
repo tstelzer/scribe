@@ -37,6 +37,7 @@ export type FilterStringProps<T> = FilterRecord<T, string>;
 export type FileToFrontmatter = (file: File) => UserFrontmatter;
 export type FileToHtml = (file: File) => Html;
 export type PageToFile = (page: Page) => (postContext: PostContext) => File;
+export type PostToFile = (p: Path) => (post: Post) => File;
 export type Logger = (...a: any) => void;
 
 export type Markdown = string;

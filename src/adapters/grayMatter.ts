@@ -24,7 +24,10 @@ const splitTags = R.pipe(
   R.split(','),
 );
 
-export const fileToFrontmatter = ({content, filepath}: T.File): T.UserFrontmatter =>
+export const fileToFrontmatter = ({
+  content,
+  filepath,
+}: T.File): T.UserFrontmatter =>
   R.pipe(
     (s: string) => matter(s, {excerpt: true, excerpt_separator: '\n\n'}),
     (a: any) => ({...a, meta: a.data}),

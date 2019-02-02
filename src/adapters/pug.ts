@@ -2,9 +2,7 @@ import * as pug from 'pug';
 
 import * as T from '../types';
 
-export const compilePost = (templatePath: T.Path) => (
-  post: T.Post,
-): T.File => ({
+export const compilePost: T.PostToFile = templatePath => post => ({
   content: pug.compileFile(templatePath)({
     postContent: post.postContent,
     ...post.frontmatter,
@@ -12,9 +10,7 @@ export const compilePost = (templatePath: T.Path) => (
   filepath: post.destinationPath,
 });
 
-export const compilePage = (page: T.Page) => (
-  context: T.PostContext,
-): T.File => ({
+export const compilePage: T.PageToFile = page => context => ({
   filepath: page.destinationPath,
   content: pug.compileFile(page.templatePath)(context),
 });

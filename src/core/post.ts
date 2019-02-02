@@ -70,8 +70,11 @@ export const toPost = (a: T.UserPost): T.Post => {
   );
 };
 
-export const reducePostContext = (context: T.PostContext, post: T.Post) => {
+// FIXME: Instead of hardcoding the applicative, lift the reducer.
+export const reducePostContext = (
+  context: T.PostContext,
+  post: T.Post,
+): T.PostContext => {
   context.posts[post.frontmatter.title] = post;
-
   return context;
 };
