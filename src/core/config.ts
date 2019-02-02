@@ -2,22 +2,11 @@
  * What is _not yet_ validated:
  * * Initial argument (presumably path to configuration) is valid path.
  * * Path points to JSON file.
- *
- * What _is_ Validated:
- * * Required properties on configuration exist.
- * * Property types are correct.
- * * Properties point to file or directory paths.
  */
 import {compose} from 'fp-ts/lib/function';
 import * as R from 'ramda';
 
-import {
-  flatMap,
-  map,
-  validate,
-  validateAll,
-  validateSequence,
-} from '../lib/validation';
+import * as V from '../lib/validation';
 import * as T from '../types';
 import {readAndParse} from './file';
 import {join, parse, resolve} from './path';
@@ -105,7 +94,7 @@ const PropSets: {
 };
 
 // =============================================================================
-// Defaults.
+// Default values.
 // =============================================================================
 
 const defaults = {
@@ -147,24 +136,24 @@ const t = {
 // =============================================================================
 
 const propIsRequired = (k: K) =>
-  validate<UserConfig>(R.has(k))(t.propertyIsRequired(k));
+  V.validate<UserConfig>(R.has(k))(t.propertyIsRequired(k));
 
 const propIsString = (k: K) =>
-  validate<UserConfig>(a => R.type(a[k]) === 'String')(
+  V.validate<UserConfig>(a => R.type(a[k]) === 'String')(
     t.propertyMustBeType(k, 'String'),
   );
 
 const optionalPropIs = (type: 'String' | 'Array') => (k: K) =>
-  validate<UserConfig>(a => !a[k] || R.type(a[k]) === type)(
+  V.validate<UserConfig>(a => !a[k] || R.type(a[k]) === type)(
     t.propertyMustBeType(k, type),
   );
 
 /**
  * Validate types of `UserConfig` properties.
  */
-const validateConfigKeys = validateSequence(
-  validateAll(PropSets.required.map(propIsRequired)),
-  validateAll([
+const validateConfigKeys = V.validateSequence(
+  V.validateAll(PropSets.required.map(propIsRequired)),
+  V.validateAll([
     ...PropSets.required.map(propIsString),
     ...PropSets.optional.map(optionalPropIs('String')),
     ...[K.categories].map(optionalPropIs('Array')),
@@ -172,15 +161,17 @@ const validateConfigKeys = validateSequence(
 );
 
 const propIsDirectory = (k: K) =>
-  validate<UserConfig>(a => P.isDirectory(a[k]))(t.propertyMustBeDirectory(k));
+  V.validate<UserConfig>(a => P.isDirectory(a[k]))(
+    t.propertyMustBeDirectory(k),
+  );
 
 const optionalPropIsFile = (k: K) =>
-  validate<UserConfig>(a => !a[k] || P.isFile(a[k]))(t.propertyMustBeFile(k));
+  V.validate<UserConfig>(a => !a[k] || P.isFile(a[k]))(t.propertyMustBeFile(k));
 
 /**
  * Validate values of `UserConfig` properties.
  */
-const validateConfigValues = validateAll([
+const validateConfigValues = V.validateAll([
   ...PropSets.required.map(propIsDirectory),
   ...PropSets.files.map(optionalPropIsFile),
 ]);
@@ -222,8 +213,7 @@ const resolveConfigPaths = (s: T.Path) => (c: UserConfig): UserConfig => {
 };
 
 /**
- * Merges defaults with the `UserConfig`, prefering the `UserConfig` in the
- * conflict case.
+ * Merges defaults values with the provided user configuration.
  */
 const mergeWithDefaults = (userConfig: UserConfig): Config =>
   R.mergeDeepRight(
@@ -242,13 +232,14 @@ const mergeWithDefaults = (userConfig: UserConfig): Config =>
   );
 
 /**
- * Takes a path to some `UserConfig` and returns a `Validation` of a `Config`.
+ * Takes a path to some configuration and returns a validated scribe
+ * configuration.
  */
 export default (s: T.Path) =>
   compose(
-    map(mergeWithDefaults),
-    flatMap(validateConfigValues),
-    map(resolveConfigPaths(s)),
+    V.map(mergeWithDefaults),
+    V.flatMap(validateConfigValues),
+    V.map(resolveConfigPaths(s)),
     validateConfigKeys,
     readAndParse,
   )(s);
