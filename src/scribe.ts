@@ -11,7 +11,7 @@ import * as templateAdapter from './adapters/pug';
 import * as styleAdapter from './adapters/scss';
 
 import {Config} from './core/config';
-import * as f from './core/file';
+import * as IO from './core/file';
 import {reducePages, toPage} from './core/page';
 import {reducePostContext, toPost, validatePost} from './core/post';
 import * as V from './lib/validation';
@@ -86,11 +86,11 @@ export default (config: Config) => {
 
   // Initialize browsersync instance, which kinda does its own thing on the
   // side. For now I don't really mind that its impure because its tangiential
-  // to the main business logic.
+  // to the core flow.
   browserSync.create().init({
     logLevel: 'silent',
     online: false,
-    server: config.destination,
+    server: config.destination.root,
     open: false,
     reloadOnRestart: true,
     injectChanges: true,
@@ -102,22 +102,21 @@ export default (config: Config) => {
   // ===========================================================================
 
   // Stream of post source files.
-  const postSource$ = f.watchDirContents(config.posts);
+  const postSource$ = IO.watchDirContents(config.posts);
 
   // Stream of page source files.
-  const pageSource$ = f.watchDirPaths(config.pages);
+  const pageSource$ = IO.watchDirPaths(config.pages);
 
   // Stream of scss source files.
-  const stylesSource$ = f
-    .watchDirPaths(config.styles)
+  const stylesSource$ = IO.watchDirPaths(config.styles)
     .pipe(RxO.debounceTime(100))
-    .pipe(RxO.flatMap(_ => f.readFile(config.styleIndex)));
+    .pipe(RxO.flatMap(_ => IO.readFile(config.styleIndex)));
 
   // ===========================================================================
   // Posts.
   // ===========================================================================
 
-  const postDestination = path.join(config.destination, 'posts');
+  // const postDestination = path.join(config.destination, 'posts');
 
   // Stream of posts.
   const posts$ = postSource$.pipe(
@@ -128,7 +127,7 @@ export default (config: Config) => {
         fileToPostV({
           fileToFrontmatter: frontmatterAdapter.fileToFrontmatter,
           fileToHtml: markdownAdapter.fileToHtml,
-          destinationDirectory: postDestination,
+          destinationDirectory: config.destination.posts,
         }),
       ),
     ),
@@ -164,7 +163,7 @@ export default (config: Config) => {
   // Stream of accumulated page context.
   const pageContext$ = pageSource$.pipe(
     RxO.filter(R.complement(isIncludedFile)),
-    RxO.map(toPage(config.destination)),
+    RxO.map(toPage(config.destination.root)),
     RxO.scan(reducePages, {}),
     RxO.debounceTime(200),
   );

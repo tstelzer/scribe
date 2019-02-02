@@ -73,11 +73,15 @@ enum K2 {
   highlight = 'highlight',
 }
 
-/** Scribe Configuration. */
+/** Internal Scribe Configuration. */
 export type Config = {
   categories: string[];
   highlight: string[];
-  destination: T.Path;
+  destination: {
+    root: T.Path;
+    styles: T.Path;
+    posts: T.Path;
+  };
   postTemplate: T.Path;
   layouts: T.Path;
   pages: T.Path;
@@ -109,6 +113,10 @@ const defaults = {
   [K.styleIndex]: 'index.scss',
   [K.postTemplate]: 'post.pug',
   [K2.highlight]: ['javascript', 'css', 'scss', 'html', 'haskell', 'gitdiff'],
+  destination: {
+    posts: 'posts',
+    styles: 'css',
+  },
 };
 
 // =============================================================================
@@ -217,15 +225,20 @@ const resolveConfigPaths = (s: T.Path) => (c: UserConfig): UserConfig => {
  * Merges defaults with the `UserConfig`, prefering the `UserConfig` in the
  * conflict case.
  */
-const mergeWithDefaults = (c: UserConfig): Config =>
+const mergeWithDefaults = (userConfig: UserConfig): Config =>
   R.mergeDeepRight(
     {
-      [K.styleIndex]: join(c.styles, defaults[K.styleIndex]),
-      [K.postTemplate]: join(c.layouts, defaults[K.postTemplate]),
-      [K.categories]: defaults[K.categories],
-      [K2.highlight]: defaults[K2.highlight],
+      styleIndex: join(userConfig.styles, defaults.styleIndex),
+      postTemplate: join(userConfig.layouts, defaults.postTemplate),
+      categories: defaults.categories,
+      highlight: defaults.highlight,
+      destination: {
+        root: userConfig.destination,
+        styles: join(userConfig.destination, defaults.destination.styles),
+        posts: join(userConfig.destination, defaults.destination.posts),
+      },
     },
-    c,
+    R.pick([K.pages, K.layouts, K.styles, K.posts], userConfig),
   );
 
 /**
