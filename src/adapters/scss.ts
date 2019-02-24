@@ -1,10 +1,12 @@
-import autoprefixer = require('autoprefixer');
-import cssnano = require('cssnano');
-import sass = require('node-sass');
+import * as autoprefixer from 'autoprefixer';
+import * as cssnano from 'cssnano';
+import * as sass from 'node-sass';
 import * as postcss from 'postcss';
-import R = require('ramda');
+import * as R from 'ramda';
 
 import * as T from '../types';
+
+const postcssPlugins = [autoprefixer, cssnano];
 
 export const compileCss = ({
   content,
@@ -22,9 +24,9 @@ export const compileCss = ({
       include: includedFiles,
     }),
     ({content, include}) =>
-      postcss([autoprefixer, cssnano])
+      postcss(postcssPlugins)
         .process(content, {from: undefined})
-        .then(({css}) => ({
+        .then(({css}: {css: string}) => ({
           content: css,
           filepath,
         })),

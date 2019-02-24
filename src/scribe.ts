@@ -59,6 +59,17 @@ const compilePostV = (adapter: T.PostToFile) => (p: T.Path) => (
   }
 };
 
+const compileStylesV = (adapter: any) => async (
+  style: any,
+): Promise<V.Validation<T.File>> => {
+  try {
+    const result = await adapter(style);
+    return V.pass(result);
+  } catch (e) {
+    return V.fail(e.message);
+  }
+};
+
 /**
  * Implements compiling pages. Compiles a list of pages from page and post
  * contexts.
@@ -212,23 +223,21 @@ export default (config: Config) => {
   // Compiling Styles.
   // ===========================================================================
 
-  // const styleOutputPath = path.join(config.destination, 'css', 'styles.css');
-
   // Stream of compiled styles.
-  // const compiledStyles$ = stylesSource$.pipe(
-  //   RxO.map(({content}) => ({
-  //     content,
-  //     includePaths: [config.styles],
-  //     filepath: styleOutputPath,
-  //   })),
-  //   RxO.flatMap(styleAdapter.compileCss),
-  //   RxO.debounceTime(200),
-  // );
+  const compiledStyles$ = stylesSource$.pipe(
+    RxO.map(({content}) => ({
+      content,
+      includePaths: [config.styles],
+      filepath: config.destination.styles,
+    })),
+    RxO.flatMap(compileStylesV(styleAdapter.compileCss)),
+    RxO.debounceTime(200),
+  );
 
   return Rx.merge(
     failedPosts$,
     compiledPosts$,
     compiledPages$,
-    // compiledStyles$,
+    compiledStyles$,
   );
 };

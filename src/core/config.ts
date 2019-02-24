@@ -104,7 +104,7 @@ const defaults = {
   [K2.highlight]: ['javascript', 'css', 'scss', 'html', 'haskell', 'gitdiff'],
   destination: {
     posts: 'posts',
-    styles: 'css',
+    styles: 'css/styles.css',
   },
 };
 
