@@ -102,6 +102,11 @@ export type Page = {
   title: string;
 };
 
+/** Accumulated layouts. */
+export type LayoutContext = {
+  [index: string]: ParsedPath;
+};
+
 /** Accumulated pages. */
 export type PageContext = {
   [title: string]: Page;

@@ -19,7 +19,7 @@ const isDirectory = (path: string) =>
 /**
  * Normalize and parse a path.
  */
-export const parse: (p1: T.Path) => T.ParsedPath = (p1: T.Path) =>
+export const parse: (p1: T.Path) => T.ParsedPath = p1 =>
   R.pipe(
     normalize,
     (p2: T.Path) => ({

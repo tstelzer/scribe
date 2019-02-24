@@ -13,6 +13,7 @@ import * as styleAdapter from './adapters/scss';
 import {Config} from './core/config';
 import * as IO from './core/file';
 import {reducePages, toPage} from './core/page';
+import * as P from './core/path';
 import {reducePostContext, toPost, validatePost} from './core/post';
 import * as V from './lib/validation';
 import * as T from './types';
@@ -79,6 +80,23 @@ const compilePagesV = (compilePage: T.PageToFile) => ([
   return pages;
 };
 
+/**
+ * Implements compiling posts by combining the latest layout context and a
+ * post.
+ */
+const compilePostsV = ([post, layoutContext]: [
+  V.Validation<T.Post>,
+  T.LayoutContext
+]) => {
+  if (V.isFailure(post)) {
+    return post;
+  } else {
+    // FIXME: Note that I'm assuming only _one_ layout for now.
+    const template = R.values(layoutContext)[0];
+    return compilePostV(templateAdapter.compilePost)(template.full)(post.value);
+  }
+};
+
 export default (config: Config) => {
   // ===========================================================================
   // Hot Reloading.
@@ -112,6 +130,22 @@ export default (config: Config) => {
     .pipe(RxO.debounceTime(100))
     .pipe(RxO.flatMap(_ => IO.readFile(config.styleIndex)));
 
+  // Stream of layouts.
+  const layouts$ = IO.watchDirPaths(config.layouts);
+
+  // ===========================================================================
+  // Layouts.
+  // ===========================================================================
+
+  const reduceLayouts = (layouts: T.LayoutContext, p: T.Path) => {
+    const _p = P.parse(p);
+
+    layouts[_p.name] = _p;
+    return layouts;
+  };
+
+  const layoutContext$ = layouts$.pipe(RxO.scan(reduceLayouts, {}));
+
   // ===========================================================================
   // Posts.
   // ===========================================================================
@@ -134,10 +168,8 @@ export default (config: Config) => {
   );
 
   // Stream of compiled post files.
-  const compiledPosts$ = posts$.pipe(
-    RxO.map(
-      V.flatMap(compilePostV(templateAdapter.compilePost)(config.postTemplate)),
-    ),
+  const compiledPosts$ = Rx.combineLatest(posts$, layoutContext$).pipe(
+    RxO.map(compilePostsV),
   );
 
   // ===========================================================================
@@ -168,8 +200,8 @@ export default (config: Config) => {
     RxO.debounceTime(200),
   );
 
-  // Now that we're done accumulating context and because we have the
-  // possibility of failure again, we're re-entering the realm of Validation.
+  // Now that I'm done accumulating context and because I have the
+  // possibility of failure again, I'm re-entering the realm of Validation.
 
   // Stream of compiled pages.
   const compiledPages$ = Rx.combineLatest(pageContext$, postContext$).pipe(

@@ -14,13 +14,10 @@ config(configPath)
   .map(scribe)
   .map(a =>
     a.subscribe(e => {
-      // Need to explicitly check here because my Validation type is apparently
-      // fucked up. Typescript fails to infer Validation here, instead it infers
-      // choice of Success or Failure (which is apparently not the same thing).
       if (e.isFailure()) {
         logFailures(e.value);
       } else {
-        console.log('wrote', e.value.filepath);
+        console.log('successfully wrote', e.value.filepath);
       }
     }),
   );
