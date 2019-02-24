@@ -117,7 +117,7 @@ export default (config: Config) => {
   // side. For now I don't really mind that its impure because its tangiential
   // to the core flow.
   browserSync.create().init({
-    logLevel: 'silent',
+    // logLevel: 'silent',
     online: false,
     server: config.destination.root,
     open: false,

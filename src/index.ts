@@ -1,5 +1,6 @@
 import {isSuccess} from 'fp-ts/lib/Validation';
 import config from './core/config';
+import {writeFile} from './core/file';
 import {logFailures} from './core/log';
 import * as V from './lib/validation';
 import scribe from './scribe';
@@ -17,7 +18,11 @@ config(configPath)
       if (e.isFailure()) {
         logFailures(e.value);
       } else {
-        console.log('successfully wrote', e.value.filepath);
+        writeFile({
+          next: ({content, filepath}: {content: any; filepath: any}) =>
+            console.log('successfully wrote', filepath),
+          error: console.error,
+        })(e.value);
       }
     }),
   );
