@@ -8,7 +8,7 @@ import * as R from 'ramda';
 
 import * as V from '../lib/validation';
 import * as T from '../types';
-import {readAndParse} from './file';
+import {readJSON} from './file';
 import {join, parse, resolve} from './path';
 import * as P from './predicates';
 
@@ -241,5 +241,5 @@ export default (s: T.Path) =>
     V.flatMap(validateConfigValues),
     V.map(resolveConfigPaths(s)),
     validateConfigKeys,
-    readAndParse,
+    readJSON,
   )(s);

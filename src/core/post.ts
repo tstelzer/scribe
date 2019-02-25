@@ -70,7 +70,6 @@ export const toPost = (a: T.UserPost): T.Post => {
   );
 };
 
-// FIXME: Instead of hardcoding the applicative, lift the reducer.
 export const reducePostContext = (
   context: T.PostContext,
   post: T.Post,

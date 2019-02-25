@@ -98,7 +98,7 @@ export const watchDirContents = (directoryPath: T.Path): Observable<T.File> =>
 /**
  * Read JSON file and parse it.
  */
-export const readAndParse: (p: T.Path) => any = R.pipe(
+export const readJSON: (p: T.Path) => any = R.pipe(
   (p: T.Path) => fs.readFileSync(p, {encoding: 'utf8', flag: 'r'}),
   JSON.parse,
 );
