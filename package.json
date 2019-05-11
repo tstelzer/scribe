@@ -9,7 +9,6 @@
     "start": "nodemon -q --watch 'src/**/*' --exec 'ts-node' src/index.ts ~/dev/project/timmstelzer/config.json -D"
   },
   "author": "Timm Stelzer <timmstelzer@gmail.com>",
-  "private": true,
   "devDependencies": {
     "@types/autoprefixer": "9.1.1",
     "@types/browser-sync": "0.0.42",
